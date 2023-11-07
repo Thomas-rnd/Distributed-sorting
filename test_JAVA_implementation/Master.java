@@ -9,13 +9,11 @@ import java.util.concurrent.Executors;
 
 public class Master {
     private static final int port = 9999;
-    private static final int maxWorkers = 5; // Définissez le nombre maximum de workers
+    private static final int maxWorkers = 1; // Définissez le nombre maximal de workers
 
     private static List<String> registeredIPs = new ArrayList<>();
     private static Map<String, List<String>> samplingKeys = new HashMap<>();
     private static int connectedWorkers = 0;
-
-    private static boolean registryPhase = True;
 
     public static void main(String[] args) {
         try {
@@ -30,15 +28,12 @@ public class Master {
                 ObjectInputStream in = new ObjectInputStream(clientSocket.getInputStream());
                 Object receivedObject = in.readObject();
 
-                if ((receivedObject instanceof RegisterRequest) & (registryPhase)) {
+                if (receivedObject instanceof RegisterRequest) {
                     RegisterRequest registerRequest = (RegisterRequest) receivedObject;
-                    if (connectedWorkers < maxWorkers) {
-                        handleRegisterRequest(clientSocket, registerRequest, threadPool);
-                    }
-
+                    handleRegisterRequest(clientSocket, registerRequest, threadPool);
                 } else if (receivedObject instanceof SamplingKeyReply) {
                     SamplingKeyReply samplingKeyReply = (SamplingKeyReply) receivedObject;
-                    handleSamplingKeyReply(clientSocket, samplingKeyReply, threadPool);
+                    handleSamplingKeyReply(samplingKeyReply);
                 }
 
                 clientSocket.close();
@@ -50,16 +45,25 @@ public class Master {
 
     private static void handleRegisterRequest(Socket clientSocket, RegisterRequest registerRequest,
             ExecutorService threadPool) {
-        String clientIP = clientSocket.getInetAddress().getHostAddress();
-        System.out.println("IP enregistrée : " + clientIP);
-        registeredIPs.add(clientIP);
-        connectedWorkers++;
-        RegisterReply reply = new RegisterReply();
-        sendObject(clientSocket, reply);
+        if (connectedWorkers < maxWorkers) {
+            String clientIP = clientSocket.getInetAddress().getHostAddress();
+            System.out.println("IP enregistrée : " + clientIP);
+            registeredIPs.add(clientIP);
+            connectedWorkers++;
+            RegisterReply reply = new RegisterReply();
+            Socket workerSocket = new Socket(workerIP, workerPort);
+            sendObject(workerSocket, reply);
+            workerSocket.close();
+            if (connectedWorkers == maxWorkers) {
+                sendSamplingKeyRequests();
+            }
+        }
+    }
 
-        if (connectedWorkers == maxWorkers) {
-            // Atteint le nombre maximal de workers, envoi de SamplingKeyRequest à chaque
-            // worker sur leur port 9998
+    private static void sendSamplingKeyRequests() {
+        for (String workerIP : registeredIPs) {
+            Thread thread = new Thread(new SamplingKeyRequestThread(workerIP));
+            thread.start();
         }
     }
 
@@ -75,6 +79,28 @@ public class Master {
         try {
             ObjectOutputStream out = new ObjectOutputStream(socket.getOutputStream());
             out.writeObject(obj);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+}
+
+class SamplingKeyRequestThread implements Runnable {
+    private String workerIP;
+    private int workerPort = 9998;
+
+    public SamplingKeyRequestThread(String workerIP) {
+        this.workerIP = workerIP;
+    }
+
+    @Override
+    public void run() {
+        try {
+            Socket socket = new Socket(workerIP, workerPort);
+            ObjectOutputStream out = new ObjectOutputStream(socket.getOutputStream());
+            SamplingKeyRequest request = new SamplingKeyRequest();
+            out.writeObject(request);
+            socket.close();
         } catch (IOException e) {
             e.printStackTrace();
         }
