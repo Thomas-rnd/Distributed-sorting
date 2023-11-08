@@ -8,16 +8,15 @@ This document provides an overview of the data structures used in our Scala proj
 - **Type:** `Array[Byte]`
 - **Usage:** Original data for the key.
 
-![Key](https://github.com/AlexDevauchelle/434project/assets/70631774/8b776b26-46b3-4b62-b6bf-f56e78d24bb9)
 ![Key (1)](https://github.com/AlexDevauchelle/434project/assets/70631774/2921f66f-5d8e-4a5c-89ff-7de40f81e1d9)
-![Key (2)](https://github.com/AlexDevauchelle/434project/assets/70631774/a4bdad70-b2e0-483c-a35c-2cabc5f1fb50)
-![Key (3)](https://github.com/AlexDevauchelle/434project/assets/70631774/50a47873-0e80-4518-9270-46cc266d5417)
 
 ## Value
 
 - **Description:** The `Value` data structure represents a 90-byte value associated with a `Key`.
 - **Type:** `Array[Byte`
 - **Usage:** Data associated with a key.
+
+  ![Value drawio](https://github.com/AlexDevauchelle/434project/assets/70631774/1d852c9c-8dd1-43e1-9156-8e3e7800b92c)
 
 ## Record
 
@@ -27,6 +26,8 @@ This document provides an overview of the data structures used in our Scala proj
 - **Methods:**
   - `toByteArray: Array[Byte]`: Serializes the record to a byte array.
   - `fromByteArray(bytes: Array[Byte]): Record`: Deserializes a byte array to a record.
+
+![Record drawio](https://github.com/AlexDevauchelle/434project/assets/70631774/b3821edc-bb7c-440b-92ac-304436e3a52b)
 
 ## Block
 
@@ -40,11 +41,15 @@ This document provides an overview of the data structures used in our Scala proj
   - `writeToFile(block: Block, filename: String): Unit`: Writes a block to a file.
   - `partition(partitionPlan: PartitionPlan): List[Partition]`: Partitions the block based on a given partition plan.
 
+![Block drawio](https://github.com/AlexDevauchelle/434project/assets/70631774/aa90c84d-da6c-4310-b103-cd9ec61bcabf)
+
 ## KeyRange
 
 - **Description:** The `KeyRange` data structure represents a range of keys defined by a starting and ending key.
 - **Type:** `Tuple2[Key, Key]`
 - **Usage:** Used for specifying key ranges in the system.
+
+![KeyRange drawio](https://github.com/AlexDevauchelle/434project/assets/70631774/554deb05-7c60-4c48-9d16-9247a760ea3d)
 
 ## Partition
 
@@ -53,11 +58,15 @@ This document provides an overview of the data structures used in our Scala proj
 - **Block Type:** `Block`
 - **Usage:** Used for partitioning data among workers.
 
+![Partition drawio](https://github.com/AlexDevauchelle/434project/assets/70631774/cd8b30fe-ae17-41e4-8526-64da6cac3a27)
+
 ## PartitionPlan
 
 - **Description:** The `PartitionPlan` data structure represents a collection of worker metadata along with their associated key ranges.
 - **Type:** `List[(WorkerMetadata, Option[KeyRange])]`
 - **Usage:** Used for planning data partitioning among workers.
+
+![PartitionPlan drawio](https://github.com/AlexDevauchelle/434project/assets/70631774/98013a92-ad80-47af-981a-1dc520828b88)
 
 ## WorkerMetadata
 
@@ -66,11 +75,15 @@ This document provides an overview of the data structures used in our Scala proj
 - **IP Type:** `String`
 - **Port Type:** `Int`
 
+![WorkerMD drawio](https://github.com/AlexDevauchelle/434project/assets/70631774/2264c206-ff86-45bd-bcd9-72ae94ff6c9f)
+
 ## MasterMetadata
 
 - **Description:** The `MasterMetadata` data structure represents metadata for the master, including the host (IP address) and port.
 - **Host Type:** `String`
 - **Port Type:** `Int`
+
+![MasterMD drawio](https://github.com/AlexDevauchelle/434project/assets/70631774/33b2b6cf-c5d4-445e-9c50-caa5c7a202c3)
 
 ---
 
