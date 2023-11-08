@@ -21,10 +21,8 @@ public class Master {
             while (connectedWorkers < maxWorkers) {
                 Socket clientSocket = serverSocket.accept();
                 System.out.println("Nouvelle connexion entrante");
-
                 ObjectInputStream in = new ObjectInputStream(clientSocket.getInputStream());
                 Object receivedObject = in.readObject();
-
                 if (receivedObject instanceof RegisterRequest) {
                     RegisterRequest registerRequest = (RegisterRequest) receivedObject;
                     handleRegisterRequest(clientSocket, registerRequest, threadPool);
@@ -71,12 +69,16 @@ public class Master {
             thread.start();
         }
 
+        System.out.println("Started " + threads.size() + " threads for SamplingKeyRequests.");
+
         // Attend que tous les threads aient terminé
         for (Thread thread : threads) {
             try {
                 thread.join();
+                System.out.println("Thread joined: " + thread.getId());
             } catch (InterruptedException e) {
                 e.printStackTrace();
+                System.err.println("Thread join interrupted: " + e.getMessage());
             }
         }
 
@@ -114,13 +116,14 @@ class SamplingKeyRequestThread implements Runnable {
         try {
             Socket socket = workerInfo.getSocket();
             ObjectOutputStream out = new ObjectOutputStream(socket.getOutputStream());
-            ObjectInputStream in = new ObjectInputStream(socket.getInputStream());
 
             // Envoyer la requête SamplingKeyRequest
             SamplingKeyRequest request = new SamplingKeyRequest();
             out.writeObject(request);
 
             // Attendre la réponse SamplingKeyReply
+
+            ObjectInputStream in = new ObjectInputStream(socket.getInputStream());
             Object receivedObject = in.readObject();
             if (receivedObject instanceof SamplingKeyReply) {
                 SamplingKeyReply reply = (SamplingKeyReply) receivedObject;
