@@ -6,13 +6,20 @@ import java.util.concurrent.Executors;
 
 public class Master {
     private static final int port = 9999;
-    private static final int maxWorkers = 1; // Définissez le nombre maximal de workers
+    private static int maxWorkers; // Définissez le nombre maximal de workers
 
     private static Map<String, WorkerInfo> workerInfoMap = new HashMap<>();
     public static Map<String, List<String>> samplingKeys = new HashMap<>();
     private static int connectedWorkers = 0;
 
     public static void main(String[] args) {
+        if (args.length != 1) {
+            System.out.println("Utilisation : java Master <nombre maximal de workers>");
+            return;
+        }
+
+        maxWorkers = Integer.parseInt(args[0]);
+
         try {
             ServerSocket serverSocket = new ServerSocket(port);
             System.out.println("Le maître écoute sur le port " + port);
