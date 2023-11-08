@@ -79,6 +79,15 @@ public class Master {
                 e.printStackTrace();
             }
         }
+
+        System.out.println("All sampligs received : ");
+        for (Map.Entry<String, List<String>> entry : samplingKeys.entrySet()) {
+            String workerIP = entry.getKey();
+            List<String> keys = entry.getValue();
+
+            System.out.println("Worker IP: " + workerIP);
+            System.out.println("Sampling Keys: " + keys);
+        }
     }
 
     private static void sendObject(Socket socket, Serializable obj) {
