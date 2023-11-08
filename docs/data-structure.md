@@ -4,44 +4,63 @@ This document provides an overview of the data structures used in our Scala proj
 
 ## Key
 
-- **Description:** The `Key` data structure represents a unique key used for sorting and comparison.
+- **Description:** The `Key` data structure represents a 10-byte key used for sorting and comparison. It is also serializable, allowing for easy storage and transmission of keys.
 - **Type:** `Array[Byte]`
 - **Usage:** Original data for the key.
+- **Features:**
+  - **Comparison:** `Key` instances are comparable, thanks to the `Ordered` trait. They can be used for sorting and comparing keys and Record in extension.
+  - **Serialization:** `Key` is serializable, allowing it to be easily converted to and from a byte array for storage and transmission.
+- **Methods:**
+  - `toByteArray: Array[Byte]`: Serializes the key to a byte array.
+  - `fromByteArray(bytes: Array[Byte]): Key`: Deserializes a byte array to a key.
 
-![Key (1)](https://github.com/AlexDevauchelle/434project/assets/70631774/2921f66f-5d8e-4a5c-89ff-7de40f81e1d9)
+![key drawio](https://github.com/AlexDevauchelle/434project/assets/70631774/94935a69-ea54-4a6a-b2c2-719e86c9d95a)
 
 ## Value
 
-- **Description:** The `Value` data structure represents a 90-byte value associated with a `Key`.
-- **Type:** `Array[Byte`
+- **Description:** The `Value` data structure represents a 90-byte value associated with a `Key` in a `Record`.
+- **Type:** `Array[Byte]`
 - **Usage:** Data associated with a key.
+- **Features:**
+  - **Serialization:** `Value` is serializable, allowing it to be easily converted to and from a byte array for storage and transmission.
+- **Methods:**
+  - `toByteArray: Array[Byte]`: Serializes the value to a byte array.
+  - `fromByteArray(bytes: Array[Byte]): Value`: Deserializes a byte array to a value.
 
-![Value drawio](https://github.com/AlexDevauchelle/434project/assets/70631774/1d852c9c-8dd1-43e1-9156-8e3e7800b92c)
+![value drawio](https://github.com/AlexDevauchelle/434project/assets/70631774/4523b891-f9d0-4c13-a476-68cd04c290ed)
 
 ## Record
 
 - **Description:** The `Record` data structure represents a combination of a 10-byte `Key` and a 90-byte `Value`.
 - **Key Type:** `Key`
 - **Value Type:** `Value`
+- **Features:**
+  - **Serialization:** `Record` is serializable, allowing it to be easily converted to and from a byte array for storage and transmission.
 - **Methods:**
   - `toByteArray: Array[Byte]`: Serializes the record to a byte array.
   - `fromByteArray(bytes: Array[Byte]): Record`: Deserializes a byte array to a record.
 
-![Record drawio](https://github.com/AlexDevauchelle/434project/assets/70631774/b3821edc-bb7c-440b-92ac-304436e3a52b)
+![Record drawio](https://github.com/AlexDevauchelle/434project/assets/70631774/cd2afd59-efe6-455d-bd45-38f5321b790e)
 
 ## Block
 
-- **Description:** The `Block` data structure contains a list of `Record`s and is used for sorting, serialization, and deserialization.
+- **Description:** The `Block` data structure represents a list of `Record` objects and is used for sorting, serialization, and deserialization.
 - **Record Type:** `Record`
+- **Features:**
+  - **Serialization:** `Block` is serializable, allowing it to be easily converted to and from a byte array for storage 
+  - **Sorting:** The `Block` class offers a sorting method that arranges records based on their keys, facilitating data organization.
+  - **Partitioning:** With a `PartitionPlan`, you can partition a `Block`, enabling the distribution of records to various workers. Optionally, you can filter records by a specified key range during partitioning.
+  - **Sampling:** The `Block` class provides a feature for sampling a defined number of keys from its records, creating a subset of keys for analytical or testing purposes.
 - **Methods:**
-  - `sorted: Block`: Sorts the records based on the Key.
-  - `toByteArray: Array[Byte]`: Serializes the block to a byte array.
-  - `fromByteArray(bytes: Array[Byte]): Block`: Deserializes a byte array to a block.
-  - `readFromFile(filename: String): Block`: Reads a block from a file.
-  - `writeToFile(block: Block, filename: String): Unit`: Writes a block to a file.
-  - `partition(partitionPlan: PartitionPlan): List[Partition]`: Partitions the block based on a given partition plan.
+  - `sorted: Block`: Sorts the records within the block based on the `key` attribute.
+  - `toByteArray: Array[Byte]`: Serializes the block into a byte array.
+  - `fromByteArray(bytes: Array[Byte]): Block`: Deserializes a byte array into a `Block`.
+  - `readFromFile(filename: String): Block`: Reads a `Block` from a file with the given `filename`.
+  - `writeToFile(block: Block, filename: String): Unit`: Writes the contents of a `Block` to a file with the specified `filename`.
+  - `partition(plan: PartitionPlan, block: Block): List[Partition]`: Partitions the `Block` based on the provided `PartitionPlan` and returns a list of `Partition` objects.
+  - `sampleKeys(block: Block, numSamples: Int): List[Key]`: Samples keys from the `Block` to generate a list of sampled keys.
 
-![Block drawio](https://github.com/AlexDevauchelle/434project/assets/70631774/aa90c84d-da6c-4310-b103-cd9ec61bcabf)
+![Block drawio](https://github.com/AlexDevauchelle/434project/assets/70631774/6bc12f7f-3614-4f38-9d37-be572b3a58fe)
 
 ## KeyRange
 
