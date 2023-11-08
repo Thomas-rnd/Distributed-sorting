@@ -8,6 +8,11 @@ This document provides an overview of the data structures used in our Scala proj
 - **Type:** `Array[Byte]`
 - **Usage:** Original data for the key.
 
+![Key](https://github.com/AlexDevauchelle/434project/assets/70631774/8b776b26-46b3-4b62-b6bf-f56e78d24bb9)
+![Key (1)](https://github.com/AlexDevauchelle/434project/assets/70631774/2921f66f-5d8e-4a5c-89ff-7de40f81e1d9)
+![Key (2)](https://github.com/AlexDevauchelle/434project/assets/70631774/a4bdad70-b2e0-483c-a35c-2cabc5f1fb50)
+![Key (3)](https://github.com/AlexDevauchelle/434project/assets/70631774/50a47873-0e80-4518-9270-46cc266d5417)
+
 ## Value
 
 - **Description:** The `Value` data structure represents a 90-byte value associated with a `Key`.
