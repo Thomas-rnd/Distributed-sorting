@@ -9,7 +9,7 @@ public class Master {
     private static final int maxWorkers = 1; // Définissez le nombre maximal de workers
 
     private static Map<String, WorkerInfo> workerInfoMap = new HashMap<>();
-    protected static Map<String, List<String>> samplingKeys = new HashMap<>();
+    public static Map<String, List<String>> samplingKeys = new HashMap<>();
     private static int connectedWorkers = 0;
 
     public static void main(String[] args) {
@@ -66,7 +66,7 @@ public class Master {
         List<Thread> threads = new ArrayList<>();
 
         for (WorkerInfo workerInfo : workerInfoMap.values()) {
-            Thread thread = new Thread(new SamplingKeyRequestThread(workerInfo));
+            Thread thread = new Thread(new SamplingKeyRequestThread(workerInfo, samplingKeys)); // Pass samplingKeys
             threads.add(thread);
             thread.start();
         }
@@ -102,9 +102,11 @@ public class Master {
 
 class SamplingKeyRequestThread implements Runnable {
     private WorkerInfo workerInfo;
+    private Map<String, List<String>> samplingKeys; // Add this field
 
-    public SamplingKeyRequestThread(WorkerInfo workerInfo) {
+    public SamplingKeyRequestThread(WorkerInfo workerInfo, Map<String, List<String>> samplingKeys) {
         this.workerInfo = workerInfo;
+        this.samplingKeys = samplingKeys; // Initialize the field
     }
 
     @Override
