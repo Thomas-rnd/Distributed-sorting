@@ -16,7 +16,7 @@ This document provides an overview of the data structures used in our Scala proj
 - **Type:** `Array[Byte`
 - **Usage:** Data associated with a key.
 
-  ![Value drawio](https://github.com/AlexDevauchelle/434project/assets/70631774/1d852c9c-8dd1-43e1-9156-8e3e7800b92c)
+![Value drawio](https://github.com/AlexDevauchelle/434project/assets/70631774/1d852c9c-8dd1-43e1-9156-8e3e7800b92c)
 
 ## Record
 
