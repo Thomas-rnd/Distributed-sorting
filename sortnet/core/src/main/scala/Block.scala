@@ -53,7 +53,21 @@ object Block extends Serializable {
     os.close()
   }
 
+  def createFromFolder(folderPath: String): Block = {
+    val folder = new File(folderPath)
 
+    if (folder.exists() && folder.isDirectory) {
+      val files = folder.listFiles().filter(_.isFile)
+      val allRecords = files.flatMap { file =>
+        val block = readFromFile(file.getAbsolutePath)
+        block.records
+      }.toList
+
+      Block(allRecords)
+    } else {
+      throw new IllegalArgumentException(s"$folderPath is not a valid directory")
+    }
+  }
 
   // Partition the Block based on a PartitionPlan
   def partition(block: Block, plan: PartitionPlan): List[Partition] = {
@@ -64,14 +78,22 @@ object Block extends Serializable {
     }
   }
 
-
-
-
   // Sample keys from the Block
-  def sampleKeys(block: Block, numSamples: Int): List[Key] = {
+  def sampleKeys(block: Block, maxSizeBytes: Int): List[Key] = {
     val allKeys = block.records.map(_.key)
-    val step = allKeys.length / numSamples
-    val sampledKeys = (0 until numSamples).map(i => allKeys(i * step)).toList
+    val shuffledKeys = Random.shuffle(allKeys)
+
+    var currentSize = 0
+    val sampledKeys = shuffledKeys.takeWhile { key =>
+      val keySize = key.toByteArray.length
+      if (currentSize + keySize <= maxSizeBytes) {
+        currentSize += keySize
+        true
+      } else {
+        false
+      }
+    }
+
     sampledKeys
   }
 }
