@@ -72,20 +72,22 @@ This document provides an overview of the data structures used in our Scala proj
 
 ## Partition
 
-- **Description:** The `Partition` data structure represents a pairing of `WorkerMetadata` and a `Block`.
-- **WorkerMetadata Type:** `WorkerMetadata`
-- **Block Type:** `Block`
+- **Description:** The `Partition` data structure represents a pairing of two `String`.
+- **String Type:** `ip`
+- **String Type:** `pathToBlockFile`
 - **Usage:** Used for partitioning data among workers.
 
-![Partition drawio](https://github.com/AlexDevauchelle/434project/assets/70631774/cd8b30fe-ae17-41e4-8526-64da6cac3a27)
+![partition drawio](https://github.com/AlexDevauchelle/434project/assets/70631774/75ce060a-713e-45ce-8654-91734326cacd)
 
 ## PartitionPlan
 
-- **Description:** The `PartitionPlan` data structure represents a collection of worker metadata along with their associated key ranges.
-- **Type:** `List[(WorkerMetadata, Option[KeyRange])]`
+- **Description:** The `PartitionPlan` data structure represents a collection of worker ip along with their associated key ranges.
+- **Type:** `List[(String, KeyRange)]`
 - **Usage:** Used for planning data partitioning among workers.
+- **Features:**
+  - **Serialization:** `PartitionPlan` is serializable, allowing it to be easily converted to and from a byte array for storage 
 
-![PartitionPlan drawio](https://github.com/AlexDevauchelle/434project/assets/70631774/98013a92-ad80-47af-981a-1dc520828b88)
+![partitionPlan drawio](https://github.com/AlexDevauchelle/434project/assets/70631774/bd26c113-acb4-4b5b-b398-fba1a83c9423)
 
 ## WorkerMetadata
 
