@@ -29,6 +29,8 @@
 - [x] Improve data structure
 - [x] Organize git repository
 - [x] Define proper milestones given feedback on progress presentation (with dates, binary objectives, ...)
-- Adapt sequence diagram given progress presentation feedback
+- [ ] Adapt sequence diagram given progress presentation feedback
 
 ## Questions
+
+- Can we use socket and Stream for network exchange between Master & Workers ?
