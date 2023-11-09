@@ -5,15 +5,15 @@ import java.net.{ServerSocket, Socket}
 import java.util.concurrent.Executors
 import scala.collection.mutable.{Map, HashMap, ListBuffer}
 
-import com.cs434.sortnet.network
-import com.cs434.sortnet.core
+import com.cs434.sortnet.network._
+import com.cs434.sortnet.core._
 
 object Master {
   private val port: Int = 9999
   private var maxWorkers: Int = 0
 
   private val workerInfoMap: Map[String, WorkerInfo] = HashMap[String, WorkerInfo]()
-  val samplingKeys: Map[String, List[String]] = HashMap[String, List[String]]()
+  val sampleKeys: Map[String, List[Key]] = HashMap[String, List[Key]]()
   private var connectedWorkers: Int = 0
 
   def main(args: Array[String]): Unit = {
@@ -43,8 +43,8 @@ object Master {
       }
       serverSocket.close()
 
-      // send samplingkeyrequest
-      sendSamplingKeyRequests()
+      // send samplekeyrequest
+      sendSampleKeyRequests()
 
     } catch {
       case e @ (_: IOException | _: ClassNotFoundException) =>
@@ -62,29 +62,29 @@ object Master {
       workerInfoMap.put(clientIP, workerInfo)
 
       connectedWorkers += 1
-      val reply = new RegisterReply
+      val reply = new RegisterReply(true)
 
       // Utilise la socket du client pour envoyer la RegisterReply
       sendObject(clientSocket, reply)
     }
   }
 
-  private def sendSamplingKeyRequests(): Unit = {
+  private def sendSampleKeyRequests(): Unit = {
     val threads = ListBuffer[Thread]()
 
     for (workerInfo <- workerInfoMap.values) {
       val thread = new Thread(new Runnable {
         def run(): Unit = {
           val workerThreadInfo = workerInfo
-          val workerSamplingKeys = samplingKeys
-          new SamplingKeyRequestThread(workerThreadInfo, workerSamplingKeys).run()
+          val workerSampleKeys = sampleKeys
+          new SampleKeyRequestThread(workerThreadInfo, workerSampleKeys).run()
         }
       })
       threads += thread
       thread.start()
     }
 
-    println(s"Started ${threads.size} threads for SamplingKeyRequests.")
+    println(s"Started ${threads.size} threads for SampleKeyRequests.")
 
     // Attend que tous les threads aient terminé
     for (thread <- threads) {
@@ -98,10 +98,10 @@ object Master {
       }
     }
 
-    println("All samplings received:")
-    for ((workerIP, keys) <- samplingKeys) {
+    println("All samples received:")
+    for ((workerIP, keys) <- sampleKeys) {
       println(s"Worker IP: $workerIP")
-      println(s"Sampling Keys: $keys")
+      println(s"Sample Keys: $keys")
     }
   }
 
@@ -116,22 +116,22 @@ object Master {
   }
 }
 
-class SamplingKeyRequestThread(private val workerInfo: WorkerInfo, private val samplingKeys: Map[String, List[String]]) extends Runnable {
+class SampleKeyRequestThread(private val workerInfo: WorkerInfo, private val sampleKeys: Map[String, List[Key]]) extends Runnable {
   override def run(): Unit = {
     try {
       val socket = workerInfo.getSocket
       val out = new ObjectOutputStream(socket.getOutputStream)
 
-      // Envoyer la requête SamplingKeyRequest
-      val request = new SamplingKeyRequest
+      // Envoyer la requête SampleKeyRequest
+      val request = new SampleKeyRequest
       out.writeObject(request)
 
-      // Attendre la réponse SamplingKeyReply
+      // Attendre la réponse SampleKeyReply
       val in = new ObjectInputStream(socket.getInputStream)
       val receivedObject = in.readObject
-      if (receivedObject.isInstanceOf[SamplingKeyReply]) {
-        val reply = receivedObject.asInstanceOf[SamplingKeyReply]
-        handleSamplingKeyReply(reply)
+      if (receivedObject.isInstanceOf[SampleKeyReply]) {
+        val reply = receivedObject.asInstanceOf[SampleKeyReply]
+        handleSampleKeyReply(reply)
       }
     } catch {
       case e @ (_: IOException | _: ClassNotFoundException) =>
@@ -139,11 +139,11 @@ class SamplingKeyRequestThread(private val workerInfo: WorkerInfo, private val s
     }
   }
 
-  private def handleSamplingKeyReply(samplingKeyReply: SamplingKeyReply): Unit = {
+  private def handleSampleKeyReply(sampleKeyReply: SampleKeyReply): Unit = {
     val workerIP = workerInfo.getWorkerIP
-    val keys = samplingKeyReply.getSamplingKeys
+    val keys = sampleKeyReply.sampledKeys
     println(s"Keys from worker $workerIP: $keys")
-    samplingKeys.put(workerIP, keys)
+    sampleKeys.put(workerIP, keys)
   }
 }
 

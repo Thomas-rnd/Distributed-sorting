@@ -74,7 +74,11 @@ object Block extends Serializable {
     plan.partitions.map {
       case (ip, keyRange) =>
         val filteredRecords = block.records.filter(record => keyRange.startKey <= record.key && record.key <= keyRange.endKey)
-        Partition(ip, Block(filteredRecords))
+        //TODO define a way to get unique filePath for exemple ./partition_X_Y with X index on ip on list and Y num of partition for each X
+        val pathToFile = "./partitionX"
+        //Block(filteredRecords)
+        //TODO write this block in disk and store it's path
+        Partition(ip, pathToFile)
     }
   }
 

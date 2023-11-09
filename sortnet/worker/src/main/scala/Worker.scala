@@ -5,8 +5,8 @@ import java.net._
 import java.util.{ArrayList}
 import scala.collection.JavaConverters._
 
-import com.cs434.sortnet.network
-import com.cs434.sortnet.core
+import com.cs434.sortnet.network._
+import com.cs434.sortnet.core._
 
 object Worker {
   def main(args: Array[String]): Unit = {
@@ -31,11 +31,13 @@ object Worker {
           val receivedObject: AnyRef = in.readObject
           receivedObject match {
             case registerReply: RegisterReply =>
-              System.out.println(s"Message reçu : ${registerReply.getMessage}")
+              System.out.println(s"Message reçu : ${registerReply.success}")
 
-            case samplingKeyRequest: SamplingKeyRequest =>
-              val mykeys: List[String] = List("hello", "world", "red")
-              val reply: SamplingKeyReply = new SamplingKeyReply(mykeys)
+            case sampleKeyRequest: SampleKeyRequest =>
+              val keyBytes: Array[Byte] = Array(1, 2, 3, 4, 5, 6, 7, 8, 9, 10) // Example byte array
+              val a: Key = Key(keyBytes)
+              val mykeys: List[Key] = List(a)
+              val reply: SampleKeyReply = new SampleKeyReply(true,mykeys)
 
 
               val out2: ObjectOutputStream = new ObjectOutputStream(socket.getOutputStream)

@@ -48,7 +48,8 @@ lazy val master = (project in file("./master"))
     name := "master",
   )
   .settings(commonSettings)
-  .dependsOn(core, network)
+  .dependsOn(core)
+  .dependsOn(network)
 
 // worker project
 lazy val worker = (project in file("./worker"))
@@ -56,4 +57,5 @@ lazy val worker = (project in file("./worker"))
     name := "worker",
   )
   .settings(commonSettings)
-  .dependsOn(core, network)
+  .dependsOn(core)
+  .dependsOn(network)
