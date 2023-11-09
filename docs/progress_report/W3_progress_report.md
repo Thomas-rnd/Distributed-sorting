@@ -30,6 +30,7 @@
 - [x] Organize git repository
 - [x] Define proper milestones given feedback on progress presentation (with dates, binary objectives, ...)
 - [ ] Adapt sequence diagram given progress presentation feedback
+- [x] Implement sampling logic
 
 ## Questions
 
