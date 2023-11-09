@@ -53,16 +53,19 @@ object Block extends Serializable {
     os.close()
   }
 
+
+
   // Partition the Block based on a PartitionPlan
   def partition(block: Block, plan: PartitionPlan): List[Partition] = {
-    plan.workers.map {
-        case (worker, Some(keyRange)) =>
+    plan.partitions.map {
+      case (ip, keyRange) =>
         val filteredRecords = block.records.filter(record => keyRange.startKey <= record.key && record.key <= keyRange.endKey)
-        Partition(worker, Block(filteredRecords))
-        case (worker, None) =>
-        Partition(worker, block)
+        Partition(ip, Block(filteredRecords))
     }
   }
+
+
+
 
   // Sample keys from the Block
   def sampleKeys(block: Block, numSamples: Int): List[Key] = {

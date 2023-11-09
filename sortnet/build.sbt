@@ -24,7 +24,7 @@ lazy val root = (project in file("."))
     libraryDependencies += munit % Test
   )
   .settings(commonSettings)
-  .aggregate(core, master, worker)
+  .aggregate(core, network, master, worker)
   
 
 // core project
@@ -34,13 +34,21 @@ lazy val core = (project in file("./core"))
   )
   .settings(commonSettings)
 
+// network project
+lazy val network = (project in file("./network"))
+  .settings(
+    name := "network",
+  )
+  .settings(commonSettings)
+  .dependsOn(core)
+
 // master project
 lazy val master = (project in file("./master"))
   .settings(
     name := "master",
   )
   .settings(commonSettings)
-  .dependsOn(core)
+  .dependsOn(core, network)
 
 // worker project
 lazy val worker = (project in file("./worker"))
@@ -48,4 +56,4 @@ lazy val worker = (project in file("./worker"))
     name := "worker",
   )
   .settings(commonSettings)
-  .dependsOn(core)
+  .dependsOn(core, network)
