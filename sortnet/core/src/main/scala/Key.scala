@@ -32,6 +32,11 @@ case class Key(bytes: Array[Byte]) extends Ordered[Key] with Serializable {
         throw new RuntimeException("Error while serializing Key", e)
     }
   }
+
+  override def toString: String = {
+    val byteArrayAsString = bytes.map(byte => f"$byte%02X").mkString(", ")
+    s"Key([$byteArrayAsString])"
+  }
 }
 
 // Companion object for Key

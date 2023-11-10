@@ -1,7 +1,8 @@
 package com.cs434.sortnet.core
 
-import java.io.{DataInputStream, DataOutputStream, IOException}
-import java.io.Serializable
+import java.io.{DataInputStream, DataOutputStream, IOException, File, Serializable}
+import scala.util.Random
+
 
 case class Block(records: List[Record]) extends Serializable {
   // Sort the records based on Key
@@ -73,7 +74,9 @@ object Block extends Serializable {
   def partition(block: Block, plan: PartitionPlan): List[Partition] = {
     plan.partitions.map {
       case (ip, keyRange) =>
-        val filteredRecords = block.records.filter(record => keyRange.startKey <= record.key && record.key <= keyRange.endKey)
+        val filteredRecords = block.records.filter(record =>
+          (keyRange.startKey <= record.key) && (keyRange.endKey.isEmpty || record.key <= keyRange.endKey.get)
+        )
         //TODO define a way to get unique filePath for exemple ./partition_X_Y with X index on ip on list and Y num of partition for each X
         val pathToFile = "./partitionX"
         //Block(filteredRecords)
