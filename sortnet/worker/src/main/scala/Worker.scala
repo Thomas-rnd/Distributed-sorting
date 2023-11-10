@@ -30,19 +30,59 @@ object Worker {
           val in: ObjectInputStream = new ObjectInputStream(socket.getInputStream)
           val receivedObject: AnyRef = in.readObject
           receivedObject match {
+
             case registerReply: RegisterReply =>
-              System.out.println(s"Message reçu : ${registerReply.success}")
+              println(s"Registration done!")
 
             case sampleKeyRequest: SampleKeyRequest =>
+              println("SampleKeyRequest received!")
               val keyBytes: Array[Byte] = Array(1, 2, 3, 4, 5, 6, 7, 8, 9, 10) // Example byte array
               val a: Key = Key(keyBytes)
               val mykeys: List[Key] = List(a)
               val reply: SampleKeyReply = new SampleKeyReply(true,mykeys)
-
-
               val out2: ObjectOutputStream = new ObjectOutputStream(socket.getOutputStream)
               out2.writeObject(reply)
+              println("SampleKeyReply send!")
 
+            case savePartitionPlanRequest: SavePartitionPlanRequest =>
+              println("SavePartitionPlanRequest received!")
+              println(savePartitionPlanRequest.partitionPlan)
+              val reply: SavePartitionPlanReply = new SavePartitionPlanReply(true)
+              val out2: ObjectOutputStream = new ObjectOutputStream(socket.getOutputStream)
+              out2.writeObject(reply)
+              println("SavePartitionPlanReply send!")
+            
+            case sortRequest: SortRequest =>
+              println("SortRequest received!")
+              println("Sorting...")
+              val reply: SortReply = new SortReply(true)
+              val out2: ObjectOutputStream = new ObjectOutputStream(socket.getOutputStream)
+              out2.writeObject(reply)
+              println("SortReply send!")
+
+            case shuffleRequest: ShuffleRequest =>
+              println("ShuffleRequest received!")
+              println("Sorting...")
+              val reply: ShuffleReply = new ShuffleReply(true)
+              val out2: ObjectOutputStream = new ObjectOutputStream(socket.getOutputStream)
+              out2.writeObject(reply)
+              println("ShuffleReply send!")
+
+            case mergeRequest: MergeRequest =>
+              println("MergeRequest received!")
+              println("Sorting...")
+              val reply: MergeReply = new MergeReply(true)
+              val out2: ObjectOutputStream = new ObjectOutputStream(socket.getOutputStream)
+              out2.writeObject(reply)
+              println("MergeReply send!")
+
+            case terminateRequest: TerminateRequest =>
+              println("TerminateRequest received!")
+              println("Sorting...")
+              val reply: TerminateReply = new TerminateReply(true)
+              val out2: ObjectOutputStream = new ObjectOutputStream(socket.getOutputStream)
+              out2.writeObject(reply)
+              println("TerminateReply send!")
               isDone = true
           }
         } catch {
