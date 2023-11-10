@@ -62,7 +62,7 @@ object Worker {
 
             case shuffleRequest: ShuffleRequest =>
               println("ShuffleRequest received!")
-              println("Sorting...")
+              println("Shuffling...")
               val reply: ShuffleReply = new ShuffleReply(true)
               val out2: ObjectOutputStream = new ObjectOutputStream(socket.getOutputStream)
               out2.writeObject(reply)
@@ -70,7 +70,7 @@ object Worker {
 
             case mergeRequest: MergeRequest =>
               println("MergeRequest received!")
-              println("Sorting...")
+              println("Merging...")
               val reply: MergeReply = new MergeReply(true)
               val out2: ObjectOutputStream = new ObjectOutputStream(socket.getOutputStream)
               out2.writeObject(reply)
@@ -78,7 +78,7 @@ object Worker {
 
             case terminateRequest: TerminateRequest =>
               println("TerminateRequest received!")
-              println("Sorting...")
+              println("Terminating...")
               val reply: TerminateReply = new TerminateReply(true)
               val out2: ObjectOutputStream = new ObjectOutputStream(socket.getOutputStream)
               out2.writeObject(reply)
