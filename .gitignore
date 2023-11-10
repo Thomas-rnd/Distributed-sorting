@@ -89,3 +89,4 @@ $RECYCLE.BIN/
 
 .metals/
 target/
+test_SCALA_implementation/
