@@ -227,58 +227,48 @@ object  MasterServices {
     }
   }
 
+  def findPivot(sortedSampledKeys: List[Key], numberOfWorkers: Int): List[Key] = {
+    // Pivot index coefficient
+    assert(sortedSampledKeys.size >= numberOfWorkers, "Not enough keys for the specified number of workers")
+    val pivot = sortedSampledKeys.size / numberOfWorkers
+    // Find value of each pivot
+    (1 until numberOfWorkers).map(i => sortedSampledKeys(i * pivot)).toList
+  }
 
+  def generateInterleavedPivotList(pivots: List[Key]): List[Key] = {
+    val minKey = Key(Array.fill(10)(0.toByte))
+    val maxKey = Key(Array.fill(10)(127.toByte))
+    // Interleave minKey, pivot, and pivot + 1, and append maxKey
+    val keyList : List[Key]=List(minKey) ++ pivots.flatMap(pivot => List(pivot, pivot.incrementByOne)) ++ List(maxKey)
+    keyList
+  }
 
+  def createKeyRangeByAggregatingKeys(list: List[Key]): List[KeyRange] = list match {
+    case a :: b :: rest => KeyRange(a, b) :: createKeyRangeByAggregatingKeys(rest)
+    case _ => Nil
+  }
 
-    // Calculate key ranges from sampled keys received from workers
-  def calculateKeyRanges(sampledKeys: List[Key], numWorkers: Int): List[KeyRange] = {
+  def sampling(sampledKeys: List[Key], numberOfWorkers: Int): List[KeyRange] = {
     val sortedKeys = sampledKeys.sorted
-    val numPivots = numWorkers - 1
-    // Calculating the indices of pivot points
-    val pivotIndices = (1 to numPivots).map { i =>
-      (i * sortedKeys.size) / numWorkers
-    }
-    // Creating KeyRange tuples based on pivot points
-    pivotIndices.zip(pivotIndices.tail :+ sortedKeys.size).map {
-      case (startIdx, endIdx) =>
-        val startKey = sortedKeys(startIdx)
-        val endKey = if (endIdx < sortedKeys.size) sortedKeys(endIdx - 1) else Key(Array()) // Replace with the appropriate Key
-        KeyRange(startKey, Some(endKey))
-    }.toList
+    val pivots = findPivot(sortedKeys,numberOfWorkers)
+    val samplingData = generateInterleavedPivotList(pivots)
+    val keyRanges = createKeyRangeByAggregatingKeys(samplingData)
+    keyRanges
   }
 
   def computePartitionPlan(sampleKeys: Map[String, List[Key]], numWorkers: Int): PartitionPlan = {
-    val keyBytes1: Array[Byte] = Array(0, 0, 0, 0, 0, 0, 0, 0, 0, 0) // Example byte array
-    val keyBytes2: Array[Byte] = Array(0, 0, 0, 0, 0, 0, 0, 0, 0, 1)
-    val keyBytes3: Array[Byte] = Array(0, 0, 0, 0, 0, 0, 0, 0, 0, 2)
-    val keyBytes4: Array[Byte] = Array(0, 0, 0, 0, 0, 0, 0, 0, 0, 3)
-    val keyBytes5: Array[Byte] = Array(0, 0, 0, 0, 0, 0, 0, 0, 0, 4)
-    val keyBytes6: Array[Byte] = Array(0, 0, 0, 0, 0, 0, 0, 0, 0, 5)
-    val k1: Key = Key(keyBytes1)
-    val k2: Key = Key(keyBytes2)
-    val k3: Key = Key(keyBytes3)
-    val k4: Key = Key(keyBytes4)
-    val k5: Key = Key(keyBytes5)
-    val k6: Key = Key(keyBytes6)
     
-    
-    
-    val keyRange1 = KeyRange(k1, Some(k2))
-    val keyRange2 = KeyRange(k3, Some(k4))
-    val keyRange3 = KeyRange(k5, Some(k6))
+    var partitions: List[(String, KeyRange)] = List.empty
+    val keyRanges = sampling(sampleKeys.values.flatten.toList, numWorkers)
 
-    val partitions = List(
-    ("Worker1", keyRange1),
-    ("Worker2", keyRange2),
-    ("Worker3", keyRange3)
-    )
+    // assiociate the key(i) of map sampleKeys(i) with the keyRangs(i)
+    // and add this in partitions
+    // Iterate over the keys in sampleKeys and associate them with corresponding keyRanges
+    sampleKeys.keys.zip(keyRanges).foreach {
+        case (key, keyRange) =>
+        partitions = partitions :+ (key, keyRange)
+    }
 
     PartitionPlan(partitions)
   }
-
-
-
- 
-
-
 }
