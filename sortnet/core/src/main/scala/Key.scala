@@ -1,8 +1,10 @@
 package com.cs434.sortnet.core
 
+import java.nio.ByteBuffer
 import java.io.{DataInputStream, DataOutputStream, IOException}
 import java.util.Arrays
 
+@SerialVersionUID(3403353340572833574L)
 case class Key(bytes: Array[Byte]) extends Ordered[Key] with Serializable {
   // Implement the compare method required by Ordered
   def compare(that: Key): Int = {
@@ -34,8 +36,39 @@ case class Key(bytes: Array[Byte]) extends Ordered[Key] with Serializable {
   }
 
   override def toString: String = {
-    val byteArrayAsString = bytes.map(byte => f"$byte%02X").mkString(", ")
+    val byteArrayAsString = new String(bytes, "UTF-8")
     s"Key([$byteArrayAsString])"
+  }
+  
+
+  // Function to increment the key value by 1
+  def incrementByOne: Key = {
+    val incrementedBytes = new Array[Byte](bytes.length)
+    var carry = 1
+
+    // Start from the end of the byte array (LSB) and work towards the beginning (MSB)
+    for (i <- bytes.length - 1 to 0 by -1) {
+      val sum = (bytes(i) & 0xFF) + carry
+      incrementedBytes(i) = (sum & 0xFF).toByte
+      carry = sum >> 8
+    }
+
+    // If there's still a carry after the loop, it means we've overflowed, we assume that case never happens
+    if (carry != 0) {
+      // Handle overflow by creating a new larger byte array and copying the incrementedBytes into it
+      val newBytes = new Array[Byte](bytes.length + 1)
+      System.arraycopy(incrementedBytes, 0, newBytes, 1, bytes.length)
+      newBytes(0) = 1 // Set the most significant byte to 1
+      Key(newBytes)
+    } else {
+      Key(incrementedBytes)
+    }
+  }
+
+  // Function to represent the bytes as integers in the range [0, 255]
+  def toStringAsIntArray: String = {
+    val intArray = bytes.map(byteValue => byteValue & 0xFF)
+    s"Key[${intArray.mkString(" ")}]"
   }
 }
 

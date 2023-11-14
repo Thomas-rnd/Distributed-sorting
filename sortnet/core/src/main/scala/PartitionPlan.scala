@@ -2,7 +2,7 @@ package com.cs434.sortnet.core
 
 import java.io.Serializable
 
-// Define the PartitionPlan case class
+@SerialVersionUID(7261933779652783196L)
 case class PartitionPlan(partitions: List[(String, KeyRange)]) extends Serializable {
   override def toString: String = {
     val partitionStrings = partitions.map {

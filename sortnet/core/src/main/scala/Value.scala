@@ -2,7 +2,7 @@ package com.cs434.sortnet.core
 
 import java.io.{DataInputStream, DataOutputStream, IOException}
 
-// Define the Value class
+@SerialVersionUID(7461933779652783196L)
 case class Value(bytes: Array[Byte]) extends Serializable {
   // Serialize the Value to a byte array
   def toByteArray: Array[Byte] = {
@@ -14,6 +14,11 @@ case class Value(bytes: Array[Byte]) extends Serializable {
       case e: IOException =>
         throw new RuntimeException("Error while serializing Value", e)
     }
+  }
+
+  override def toString: String = {
+    val byteArrayAsString = new String(bytes, "UTF-8")
+    s"Value([$byteArrayAsString])"
   }
 }
 

@@ -2,19 +2,20 @@ package com.cs434.sortnet.core
 
 import java.io.{DataInputStream, DataOutputStream, IOException}
 
-// Define the Record class
-case class Record(key: Key, value: Array[Byte]) extends Serializable {
+@SerialVersionUID(7361933779652783196L)
+case class Record(key: Key, value: Value) extends Serializable {
   // Serialize the Record to a byte array
   def toByteArray: Array[Byte] = {
     try {
         val keyBytes = key.toByteArray
-        val byteArray = new Array[Byte](keyBytes.length + value.length)
+        val valueBytes = value.toByteArray
+        val byteArray = new Array[Byte](keyBytes.length + valueBytes.length)
 
         // Copy the key bytes to the byteArray
         System.arraycopy(keyBytes, 0, byteArray, 0, keyBytes.length)
 
         // Copy the value bytes to the byteArray
-        System.arraycopy(value, 0, byteArray, keyBytes.length, value.length)
+        System.arraycopy(valueBytes, 0, byteArray, keyBytes.length, valueBytes.length)
 
         byteArray
     } catch {
@@ -32,9 +33,9 @@ object Record {
   def fromByteArray(dataInputStream: DataInputStream): Record = {
     val keyBytes = new Array[Byte](Key.keySize)
     dataInputStream.readFully(keyBytes)
-    val valueBytes = new Array[Byte](recordSize - Key.keySize)
+    val valueBytes = new Array[Byte](Value.valueSize)
     dataInputStream.readFully(valueBytes)
 
-    Record(Key(keyBytes), valueBytes)
+    Record(Key(keyBytes), Value(valueBytes))
   }
 }
