@@ -1,6 +1,6 @@
-# Data Structures Documentation
+# Data Structures Documentation 2.0
 
-This document provides an overview of the data structures used in our Scala project.
+This document provides an overview of the data structures  used in our Scala project.
 
 ## Key
 
@@ -12,9 +12,12 @@ This document provides an overview of the data structures used in our Scala proj
   - **Serialization:** `Key` is serializable, allowing it to be easily converted to and from a byte array for storage and transmission.
 - **Methods:**
   - `toByteArray: Array[Byte]`: Serializes the key to a byte array.
+  - `toString: String`: Provides a string representation of the key. For better readability, it converts the byte array to a UTF-8 string.
+  - `toStringAsIntArray: String`: Represents the key bytes as integers.
+  - `incrementByOne: Key`: Increments the key value by 1. Handles overflow by creating a new larger byte array if needed.
   - `fromByteArray(bytes: Array[Byte]): Key`: Deserializes a byte array to a key.
 
-![key drawio](https://github.com/AlexDevauchelle/434project/assets/70631774/94935a69-ea54-4a6a-b2c2-719e86c9d95a)
+![Key drawio](https://github.com/AlexDevauchelle/434project/assets/70631774/bc8fa13c-3ea1-4e86-bbce-acaaa4f75828)
 
 ## Value
 
@@ -25,9 +28,10 @@ This document provides an overview of the data structures used in our Scala proj
   - **Serialization:** `Value` is serializable, allowing it to be easily converted to and from a byte array for storage and transmission.
 - **Methods:**
   - `toByteArray: Array[Byte]`: Serializes the value to a byte array.
+  - `toString: String`: Provides a string representation of the value. For better readability, it converts the byte array to a UTF-8 string.
   - `fromByteArray(bytes: Array[Byte]): Value`: Deserializes a byte array to a value.
 
-![value drawio](https://github.com/AlexDevauchelle/434project/assets/70631774/4523b891-f9d0-4c13-a476-68cd04c290ed)
+![Value drawio](https://github.com/AlexDevauchelle/434project/assets/70631774/eca4ef4c-1f04-4dd1-93ce-2d4d4b5ae127)
 
 ## Record
 
@@ -44,7 +48,7 @@ This document provides an overview of the data structures used in our Scala proj
 
 ## Block
 
-- **Description:** The `Block` data structure represents a list of `Record` objects and is used for sorting, serialization, and deserialization.
+- **Description:** The `Block` data structure represents a list of `Record` objects and is used for sampling, sorting, partitioning, serialization, and deserialization.
 - **Record Type:** `Record`
 - **Features:**
   - **Serialization:** `Block` is serializable, allowing it to be easily converted to and from a byte array for storage 
@@ -55,20 +59,26 @@ This document provides an overview of the data structures used in our Scala proj
   - `sorted: Block`: Sorts the records within the block based on the `key` attribute.
   - `toByteArray: Array[Byte]`: Serializes the block into a byte array.
   - `fromByteArray(bytes: Array[Byte]): Block`: Deserializes a byte array into a `Block`.
-  - `readFromFile(filename: String): Block`: Reads a `Block` from a file with the given `filename`.
-  - `writeToFile(block: Block, filename: String): Unit`: Writes the contents of a `Block` to a file with the specified `filename`.
-  - `partition(plan: PartitionPlan, block: Block): List[Partition]`: Partitions the `Block` based on the provided `PartitionPlan` and returns a list of `Partition` objects.
-  - `sampleKeys(block: Block, numSamples: Int): List[Key]`: Samples keys from the `Block` to generate a list of sampled keys.
+  - `readFromBinaryFile(filePath: String): Block`: Reads a `Block` from a binary file with the given `filePath`.
+  - `readFromASCIIFile(filePath: String): Block`: Reads a `Block` from a ASCII file with the given `filePath`.
+  - `writeToBinaryFile(block: Block, filePath: String): Unit`: Writes the contents of a `Block` to a binary file with the specified `filePath`.
+  - `writeToASCIIFile(block: Block, filePath: String): Unit`: Writes the contents of a `Block` to a ASCII file with the specified `filePath`.
+ - `partition(block: Block, plan: PartitionPlan, nameFile: String): List[Partition]`: Partitions the `Block` based on the provided `PartitionPlan`, creates ASCII files of resulting blocks, and returns a list of `Partition` objects.
 
-![Block drawio](https://github.com/AlexDevauchelle/434project/assets/70631774/6bc12f7f-3614-4f38-9d37-be572b3a58fe)
+  - `sampleKeys(block: Block, maxSizeBytes: Int): List[Key]`: Samples keys from the `Block` to generate a list of sampled keys.
+
+![Block drawio](https://github.com/AlexDevauchelle/434project/assets/70631774/839ee778-ae64-45a9-b48a-53813f97f39b)
 
 ## KeyRange
 
 - **Description:** The `KeyRange` data structure represents a range of keys defined by a starting and ending key.
 - **Type:** `Tuple2[Key, Key]`
 - **Usage:** Used for specifying key ranges in the system.
+- **Methods:**
+  - `toString: String`: Provides a string representation of the KeyRange. For better readability, it converts the byte array of the keys to a UTF-8 string.
+  - `toStringAsIntArray: String`: Represents the keys bytes as integers.
 
-![KeyRange drawio](https://github.com/AlexDevauchelle/434project/assets/70631774/554deb05-7c60-4c48-9d16-9247a760ea3d)
+![KeyRange drawio](https://github.com/AlexDevauchelle/434project/assets/70631774/2f9cca08-0057-41b9-9286-50588cf84f96)
 
 ## Partition
 
@@ -86,8 +96,10 @@ This document provides an overview of the data structures used in our Scala proj
 - **Usage:** Used for planning data partitioning among workers.
 - **Features:**
   - **Serialization:** `PartitionPlan` is serializable, allowing it to be easily converted to and from a byte array for storage 
+- **Methods:**
+  - `toString: String`: Provides a string representation of the PartitionPlan. For better readability, it converts the byte array of the keys to a UTF-8 string.
 
-![partitionPlan drawio](https://github.com/AlexDevauchelle/434project/assets/70631774/bd26c113-acb4-4b5b-b398-fba1a83c9423)
+![ParitionPlan drawio](https://github.com/AlexDevauchelle/434project/assets/70631774/1e548918-eb6c-4671-aaeb-c1c4f8c1c540)
 
 ## WorkerMetadata
 
@@ -95,16 +107,18 @@ This document provides an overview of the data structures used in our Scala proj
 - **Key Range Type:** `Option[KeyRange]`
 - **IP Type:** `String`
 - **Port Type:** `Int`
+- **Socker Type:** `Socket`
 
 ![WorkerMD drawio](https://github.com/AlexDevauchelle/434project/assets/70631774/2264c206-ff86-45bd-bcd9-72ae94ff6c9f)
 
 ## MasterMetadata
 
-- **Description:** The `MasterMetadata` data structure represents metadata for the master, including the host (IP address) and port.
-- **Host Type:** `String`
+- **Description:** The `MasterMetadata` data structure represents metadata for the master, including the host (IP address), port and socket.
+- **IP Type:** `String`
 - **Port Type:** `Int`
+- **Socker Type:** `Socket`
 
-![MasterMD drawio](https://github.com/AlexDevauchelle/434project/assets/70631774/33b2b6cf-c5d4-445e-9c50-caa5c7a202c3)
+![MasterMetadata drawio](https://github.com/AlexDevauchelle/434project/assets/70631774/f2b9c3fb-2206-449f-a1b0-b85e8bd9cd6d)
 
 ---
 
