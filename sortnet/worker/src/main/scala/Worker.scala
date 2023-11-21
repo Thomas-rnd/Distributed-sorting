@@ -9,19 +9,35 @@ import com.cs434.sortnet.network._
 import com.cs434.sortnet.core._
 
 object Worker {
+
+  private var masterIP: String = null
+  private val masterPort: Int = 9999
+
+  private var numWorkers: Int = 0
+  private var partitionsList: List[Partition] = null
+  private var partitionPlan: PartitionPlan = null
+  private var inputFolderPath: List[String] = List()
+
+  private var threadListen: Thread = null
+
   def main(args: Array[String]): Unit = {
-    if (args.length != 1) {
-      System.out.println("Utilisation : java Worker <adresse IP du maître>")
+    if (args.length < 2) {
+      System.out.println(
+        "Utilisation : java Worker <adresse IP du maître> <input folder 1> [<input folder ...>]"
+      )
       return
     }
 
-    val masterIP: String = args(0)
-    val masterPort: Int = 9999
+    masterIP = args(0)
+    // Concatenate input folders to the list starting from index 1
+    inputFolderPath = inputFolderPath ++ args.slice(1, args.length).toList
 
-    var numWorks: Int = 0 // TODO SHOULD BE DINAMIC SET WITH PARTITIONPLAN
-    var partitionsList: List[Partition] = null
-    var partitionPlan: PartitionPlan = null
-    val folderPath = "/home/red/data/input"
+    // Print the values in the inputFolderPath list
+    println("Input Folders: " + inputFolderPath.mkString(", "))
+
+    val testImputfolder = "/home/red/data/input"
+
+    threadListen = new Thread()
 
     try {
       val socket: Socket = new Socket(masterIP, masterPort)
@@ -46,7 +62,7 @@ object Worker {
             case sampleKeyRequest: SampleKeyRequest =>
               println("SampleKeyRequest received!")
 
-              val mykeys = WorkerServices.sendSamples(folderPath)
+              val mykeys = WorkerServices.sendSamples(testImputfolder)
               val reply: SampleKeyReply = new SampleKeyReply(true, mykeys)
               val out2: ObjectOutputStream = new ObjectOutputStream(
                 socket.getOutputStream
@@ -56,6 +72,24 @@ object Worker {
 
             case savePartitionPlanRequest: SavePartitionPlanRequest =>
               println("SavePartitionPlanRequest received!")
+
+              partitionPlan = savePartitionPlanRequest.partitionPlan
+              println("Partition Plan saved :")
+              println(partitionPlan)
+
+              numWorkers = partitionPlan.partitions.length
+              println(s"NumWorker = $numWorkers")
+
+              println("Preparing for shuffling phase")
+              threadListen = new Thread(new Runnable {
+                def run(): Unit = {
+                  WorkerServices.handleSaveBlockRequest(numWorkers)
+                }
+              })
+              threadListen.start()
+              println("Listen Thread Start")
+              println("Preparation Done")
+
               val reply: SavePartitionPlanReply = new SavePartitionPlanReply(
                 true
               )
@@ -68,6 +102,9 @@ object Worker {
             case sortRequest: SortRequest =>
               println("SortRequest received!")
               println("Sorting...")
+              partitionsList =
+                WorkerServices.sortFiles(testImputfolder, partitionPlan)
+
               val reply: SortReply = new SortReply(true)
               val out2: ObjectOutputStream = new ObjectOutputStream(
                 socket.getOutputStream
@@ -78,6 +115,21 @@ object Worker {
             case shuffleRequest: ShuffleRequest =>
               println("ShuffleRequest received!")
               println("Shuffling...")
+
+              val threadSend = new Thread(new Runnable {
+                def run(): Unit = {
+                  WorkerServices.sendSaveBlockRequest(
+                    partitionPlan,
+                    partitionsList
+                  ) // partitions should be a List[Partition]
+                }
+              })
+              threadSend.start()
+              println("Sending Thread Start")
+
+              threadListen.join()
+              threadSend.join()
+
               val reply: ShuffleReply = new ShuffleReply(true)
               val out2: ObjectOutputStream = new ObjectOutputStream(
                 socket.getOutputStream
@@ -88,6 +140,7 @@ object Worker {
             case mergeRequest: MergeRequest =>
               println("MergeRequest received!")
               println("Merging...")
+              WorkerServices.mergeFiles("/home/red/data/tmp")
               val reply: MergeReply = new MergeReply(true)
               val out2: ObjectOutputStream = new ObjectOutputStream(
                 socket.getOutputStream
