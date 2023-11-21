@@ -21,7 +21,7 @@ ip_addresses=("2.2.2.143" "2.2.2.144" "2.2.2.145"
 # Fonction pour générer un fichier de données sur une machine distante
 delete_data() {
     local ip="$1"
-    ssh "$ip" "rm ~/data/*"
+    ssh "$ip" "rm ~/data/*/*"
     status=$?
     if [ $status -eq 0 ]; then
         echo "Data delete on $ip"
