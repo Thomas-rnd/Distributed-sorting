@@ -34,11 +34,8 @@ case class Block(records: List[Record]) extends Serializable {
       }
 
       // Ensure that the serialized byte array has the expected size
-      assert(
-        byteArrayOutputStream.size == dataSize,
-        s"Serialized data size mismatch: expected $dataSize," +
-          s" actual ${byteArrayOutputStream.size}"
-      )
+      assert(byteArrayOutputStream.size == dataSize, s"Serialized data size mismatch: expected $dataSize," +
+        s" actual ${byteArrayOutputStream.size}")
 
       byteArrayOutputStream.toByteArray
     } catch {
@@ -48,8 +45,9 @@ case class Block(records: List[Record]) extends Serializable {
   }
 }
 
-/** Companion object for Block, providing utility functions.
-  */
+/**
+ * Companion object for Block, providing utility functions.
+ */
 @SerialVersionUID(7061933779652783196L)
 object Block extends Serializable {
 
@@ -60,15 +58,10 @@ object Block extends Serializable {
    * @return A new Block instance.
    */
   def fromByteArray(bytes: Array[Byte]): Block = {
-    val dataInputStream = new DataInputStream(
-      new java.io.ByteArrayInputStream(bytes)
-    )
+    val dataInputStream = new DataInputStream(new java.io.ByteArrayInputStream(bytes))
 
     // Ensure that the byte array size is a multiple of the record size
-    assert(
-      bytes.length % Record.recordSize == 0,
-      s"Invalid byte array size for deserialization: ${bytes.length}"
-    )
+    assert(bytes.length % Record.recordSize == 0, s"Invalid byte array size for deserialization: ${bytes.length}")
 
     val numRecords = bytes.length / Record.recordSize
 
@@ -86,8 +79,7 @@ object Block extends Serializable {
    * @return A new Block instance.
    */
   def readFromBinaryFile(filePath: String): Block = {
-    val bytes =
-      scala.io.Source.fromFile(filePath, "ISO-8859-1").map(_.toByte).toArray
+    val bytes = scala.io.Source.fromFile(filePath, "ISO-8859-1").map(_.toByte).toArray
     fromByteArray(bytes)
   }
 
@@ -98,10 +90,9 @@ object Block extends Serializable {
    * @param filePath The path to the binary file.
    */
   def writeToBinaryFile(block: Block, filePath: String): Unit = {
-    val os =
-      new java.io.FileOutputStream(filePath, true) // 'true' for append mode
+    val os = new java.io.FileOutputStream(filePath, true)  // 'true' for append mode
     os.write(block.toByteArray)
-    os.write("\n".getBytes("UTF-8")) // append newline
+    os.write("\n".getBytes("UTF-8"))  // append newline
     os.close()
   }
 
@@ -123,8 +114,7 @@ object Block extends Serializable {
         (startKey <= record.key) && (record.key <= endKey)
       )
 
-      val pathToPartition =
-        "/home/red/data/tmp/" + nameFile + "_" + indexPartition
+      val pathToPartition = "/home/red/data/tmp/" + nameFile + "_" + indexPartition
       writeToASCIIFile(Block(filteredRecords), pathToPartition)
 
       indexPartition = indexPartition + 1
@@ -156,10 +146,7 @@ object Block extends Serializable {
 
     // Assertions to ensure that the sampled keys meet expectations
     assert(sampledKeys.length > 0, "No keys have been sampled keys from block")
-    assert(
-      currentSize <= maxSizeBytes,
-      "Sampled keys exceed the specified maximum size"
-    )
+    assert(currentSize <= maxSizeBytes, "Sampled keys exceed the specified maximum size")
 
     sampledKeys
   }
@@ -180,16 +167,10 @@ object Block extends Serializable {
         val keyBytes = keyStr.getBytes("UTF-8")
         val dataBytes = dataStr.getBytes("UTF-8")
         // Assertions to check the sizes of key and value
-        assert(
-          keyBytes.length == Key.keySize,
-          s"The key read from the file has the wrong size: expected " +
-            s"${Key.keySize}, actual ${keyBytes.length}"
-        )
-        assert(
-          dataBytes.length == Value.valueSize,
-          s"The value read from the file has the wrong size: expected" +
-            s"${Value.valueSize}, actual ${dataBytes.length}"
-        )
+        assert(keyBytes.length == Key.keySize, s"The key read from the file has the wrong size: expected " +
+          s"${Key.keySize}, actual ${keyBytes.length}")
+        assert(dataBytes.length == Value.valueSize, s"The value read from the file has the wrong size: expected" +
+          s"${Value.valueSize}, actual ${dataBytes.length}")
 
         Some(Record(Key(keyBytes), Value(dataBytes)))
       } else {
@@ -213,16 +194,10 @@ object Block extends Serializable {
       block.records.foreach { record =>
         val keyStr = new String(record.key.bytes, "UTF-8")
         val dataStr = new String(record.value.bytes, "UTF-8")
-        assert(
-          keyStr.getBytes("UTF-8").length == Key.keySize,
-          s"The key written to the file has the wrong size: expected " +
-            s"${Key.keySize}, actual ${keyStr.getBytes("UTF-8").length}"
-        )
-        assert(
-          dataStr.getBytes("UTF-8").length == Value.valueSize,
-          s"The value written to the file has the wrong size: expected " +
-            s"${Value.valueSize}, actual ${dataStr.getBytes("UTF-8").length}"
-        )
+        assert(keyStr.getBytes("UTF-8").length == Key.keySize, s"The key written to the file has the wrong size: expected " +
+          s"${Key.keySize}, actual ${keyStr.getBytes("UTF-8").length}")
+        assert(dataStr.getBytes("UTF-8").length == Value.valueSize, s"The value written to the file has the wrong size: expected " +
+          s"${Value.valueSize}, actual ${dataStr.getBytes("UTF-8").length}")
 
         writer.print(keyStr + dataStr)
       }
