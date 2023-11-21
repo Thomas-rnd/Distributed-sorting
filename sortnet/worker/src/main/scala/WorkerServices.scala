@@ -137,7 +137,7 @@ def sortFiles(folderPath: String, partitionPlan: PartitionPlan): List[Partition]
       val clienIPClean = clientIP.replace(".", "")
 
       var nbBlockToSave = saveBlockRequest.blockToSend
-      var blockToSave = saveBlockRequest.block
+      var blockToSave = Block.fromByteArray(saveBlockRequest.block)
 
       while (nbBlockToSave != 0) {
         logger.info(s"Worker $clientIP have $nbBlockToSave block to send.")
@@ -150,7 +150,7 @@ def sortFiles(folderPath: String, partitionPlan: PartitionPlan): List[Partition]
         if (receivedObject.isInstanceOf[SaveBlockRequest]) {
           val lastSaveBlockRequest = receivedObject.asInstanceOf[SaveBlockRequest]
           nbBlockToSave = lastSaveBlockRequest.blockToSend
-          blockToSave = lastSaveBlockRequest.block
+          blockToSave = Block.fromByteArray(lastSaveBlockRequest.block)
         }
       }
       logger.info(s"Worker $clientIP dont have block left to send.")
@@ -197,7 +197,7 @@ def sortFiles(folderPath: String, partitionPlan: PartitionPlan): List[Partition]
                   val block = Block.readFromASCIIFile(partitionToSend.pathToBlockFile)
 
                   // Create a SaveBlockRequest
-                  val saveBlockRequest = new SaveBlockRequest(block, nbFileToSend)
+                  val saveBlockRequest = new SaveBlockRequest(block.toByteArray, nbFileToSend)
 
                   // Send SaveBlockRequest on the socket
                   val out = new ObjectOutputStream(socket.getOutputStream)
@@ -212,7 +212,7 @@ def sortFiles(folderPath: String, partitionPlan: PartitionPlan): List[Partition]
 
                 // Send a SaveBlockRequest with an empty block and 0
                 val emptyBlock = new Block(List.empty) // Adjust this based on your Block implementation
-                val saveBlockRequest = new SaveBlockRequest(emptyBlock, 0)
+                val saveBlockRequest = new SaveBlockRequest(emptyBlock.toByteArray, 0)
                 val out = new ObjectOutputStream(socket.getOutputStream)
                 out.writeObject(saveBlockRequest)
               } catch {

@@ -135,7 +135,7 @@ object MasterServices extends Logging{
                 val reply = receivedObject.asInstanceOf[SampleKeyReply]
                 val workerIP = workerMetadata.ip
                 val keys = reply.sampledKeys.toList
-                logger.info(s"Keys from worker $workerIP: $keys")
+                //logger.info(s"Keys from worker $workerIP: $keys")
                 sampleKeysFound.put(workerIP, keys)
               }
             case None =>
