@@ -1,0 +1,17 @@
+#!/bin/bash
+
+[ -z $1 ] && echo "Error: Argument missing ! Usage : master <# of workers>" && exit 1
+[ "$1" -ge 1 ] 2>/dev/null || (echo "Error: Invalid argument <NUM_SLAVES>: ${1}" && exit 1)
+num_slaves=$1
+
+platform=""
+if [[ "$OSTYPE" == "linux-gnu"* ]]; then
+  platform="linux"
+else
+  echo "Error : Unsupported OS" && exit 1
+fi
+
+cd /home/red/434project/sortnet
+
+export SBT_OPTS="-Dlog4j.configurationFile=/home/red/434project/sortnet/conf/log4j2.xml"
+sbt "master/runMain com.cs434.sortnet.master.Master ${num_slaves}"
