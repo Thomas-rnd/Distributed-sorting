@@ -92,4 +92,166 @@ object WorkerServices {
 
     partitionSortedFiles
   }
+
+  def handleSaveBlockRequest(numWorkers: Int): Unit = {
+    // Start a new WorkerSaveBlockThread where the worker will listen on port 9988
+    val serverSocket = new ServerSocket(9988)
+    println("Worker is listening on port 9988 for SaveBlockRequest")
+    val threads = ListBuffer[Thread]()
+
+    var workerConnected = 0
+    val numOtherWorker = numWorkers - 1
+
+    while (workerConnected < numOtherWorker) {
+      val clientSocket = serverSocket.accept()
+      println("New incoming connection")
+      val in = new ObjectInputStream(clientSocket.getInputStream)
+      val receivedObject = in.readObject
+      if (receivedObject.isInstanceOf[SaveBlockRequest]) {
+        val saveBlockRequest = receivedObject.asInstanceOf[SaveBlockRequest]
+        val thread = new Thread(new Runnable {
+          def run(): Unit = {
+            saveBlocksFromWorker(clientSocket, saveBlockRequest)
+          }
+        })
+        threads += thread
+        thread.start()
+        workerConnected = workerConnected + 1
+      } else {
+        clientSocket.close()
+      }
+
+    }
+
+    serverSocket.close()
+
+    println(s"Started ${threads.size} threads for SaveBlockRequest Requests.")
+
+    // Wait for all the threads to finish
+    for (thread <- threads) {
+      try {
+        thread.join()
+        println(s"Thread joined: ${thread.getId}")
+      } catch {
+        case e: InterruptedException =>
+          e.printStackTrace()
+          System.err.println(s"Thread join interrupted: ${e.getMessage}")
+      }
+    }
+  }
+
+  def saveBlocksFromWorker(
+      clientSocket: Socket,
+      saveBlockRequest: SaveBlockRequest
+  ): Unit = {
+    try {
+
+      val clientIP = clientSocket.getInetAddress.getHostAddress
+      val clienIPClean = clientIP.replace(".", "")
+
+      var nbBlockToSave = saveBlockRequest.blockToSend
+      var blockToSave = saveBlockRequest.block
+
+      while (nbBlockToSave != 0) {
+        println(s"Worker $clientIP have $nbBlockToSave block to send.")
+        val pathToFile =
+          "/home/red/data/tmp/partition_" + clienIPClean + "_" + nbBlockToSave
+        Block.writeToASCIIFile(blockToSave, pathToFile)
+
+        val in = new ObjectInputStream(clientSocket.getInputStream)
+        val receivedObject = in.readObject
+
+        if (receivedObject.isInstanceOf[SaveBlockRequest]) {
+          val lastSaveBlockRequest =
+            receivedObject.asInstanceOf[SaveBlockRequest]
+          nbBlockToSave = lastSaveBlockRequest.blockToSend
+          blockToSave = lastSaveBlockRequest.block
+        }
+      }
+      println(s"Worker $clientIP dont have block left to send.")
+
+    } catch {
+      case e: Exception =>
+        e.printStackTrace()
+    }
+  }
+
+  def sendSaveBlockRequest(
+      partitionPlan: PartitionPlan,
+      partitionsToSendList: List[Partition]
+  ): Unit = {
+    val myIP = InetAddress.getLocalHost.getHostAddress
+    println(s"Mu IP is : $myIP")
+    // Create a mutable list to store threads
+    var threads = List[Thread]()
+
+    println("sendSaveBlockRequest(partitionPlan,partitionsToSendList)")
+    println("partitionPlan:")
+    println(partitionPlan)
+    println("partitionsToSendList:")
+    println(partitionsToSendList)
+    // Iterate over partitionPlan
+    partitionPlan.partitions.foreach { case (partitionIP, _) =>
+      println(s"Start for IP: $partitionIP")
+      // If partition(0) IP is not equal to my IP
+      if (partitionIP != myIP) {
+        println("Not my ip, let's start a thread")
+        val thread = new Thread(new Runnable {
+          def run(): Unit = {
+            println(s"Let's open a socket for IP: $partitionIP")
+            val socket =
+              new Socket(partitionIP, 9988) // Use the appropriate port number
+
+            try {
+              // Get the partitions to send to for the current partitionIP
+              val partitionsToSend =
+                partitionsToSendList.filter(_.ip == partitionIP)
+
+              // Set nbFileToSend to the number of matching partitions
+              var nbFileToSend = partitionsToSend.length
+
+              partitionsToSend.foreach { partitionToSend =>
+                // Read the block from the file
+                val block =
+                  Block.readFromASCIIFile(partitionToSend.pathToBlockFile)
+
+                // Create a SaveBlockRequest
+                val saveBlockRequest = new SaveBlockRequest(block, nbFileToSend)
+
+                // Send SaveBlockRequest on the socket
+                val out = new ObjectOutputStream(socket.getOutputStream)
+                out.writeObject(saveBlockRequest)
+
+                // delete the file send
+                Files.delete(Paths.get(partitionToSend.pathToBlockFile))
+
+                // Decrement nbFileToSend
+                nbFileToSend -= 1
+              }
+
+              // Send a SaveBlockRequest with an empty block and 0
+              val emptyBlock =
+                new Block(
+                  List.empty
+                ) // Adjust this based on your Block implementation
+              val saveBlockRequest = new SaveBlockRequest(emptyBlock, 0)
+              val out = new ObjectOutputStream(socket.getOutputStream)
+              out.writeObject(saveBlockRequest)
+            } catch {
+              case e: Exception =>
+                e.printStackTrace()
+            } finally {
+              socket.close()
+            }
+          }
+        })
+
+        thread.start()
+        threads ::= thread // Add the thread to the list
+      }
+    }
+
+    // Wait for all threads to finish
+    threads.foreach(_.join())
+  }
 }
