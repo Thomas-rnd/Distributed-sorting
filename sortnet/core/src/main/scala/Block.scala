@@ -106,7 +106,7 @@ object Block extends Serializable {
    */
   def partition(block: Block, plan: PartitionPlan, nameFile: String): List[Partition] = {
     var indexPartition = 0
-    plan.partitions.map { case (ip, keyRange) =>
+    plan.partitions.toList.map { case (ip, keyRange) =>
       val startKey = keyRange.startKey
       val endKey = keyRange.endKey
 

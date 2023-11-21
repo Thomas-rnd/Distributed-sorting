@@ -71,7 +71,7 @@ object Worker extends Logging{
                 accumulatedKeys ++ WorkerServices.sendSamples(folderPath)
               }
 
-              val reply: SampleKeyReply = new SampleKeyReply(true, myKeys)
+              val reply: SampleKeyReply = new SampleKeyReply(true, myKeys.toArray)
               
               
               val out2: ObjectOutputStream = new ObjectOutputStream(socket.getOutputStream)

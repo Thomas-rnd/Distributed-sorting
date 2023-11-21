@@ -134,7 +134,7 @@ object MasterServices extends Logging{
               if (receivedObject.isInstanceOf[SampleKeyReply]) {
                 val reply = receivedObject.asInstanceOf[SampleKeyReply]
                 val workerIP = workerMetadata.ip
-                val keys = reply.sampledKeys
+                val keys = reply.sampledKeys.toList
                 logger.info(s"Keys from worker $workerIP: $keys")
                 sampleKeysFound.put(workerIP, keys)
               }
@@ -295,8 +295,8 @@ object MasterServices extends Logging{
    * @return            PartitionPlan object representing the partitioning plan.
    */
   def computePartitionPlan(sampledKeys: Map[String, List[Key]], numWorkers: Int): PartitionPlan = {
-    // Initialize an empty list to store partitions
-    var partitions: List[(String, KeyRange)] = List.empty
+    // Initialize an empty array to store partitions
+    var partitions: Array[(String, KeyRange)] = Array.empty
     val keyRanges = createKeyRangeFromSampledKeys(sampledKeys.values.flatten.toList, numWorkers)
 
     // Associate the key(i) of map sampledKeys(i) with the keyRanges(i) and add this to partitions
