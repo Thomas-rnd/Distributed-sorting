@@ -11,7 +11,12 @@ else
   echo "Error : Unsupported OS" && exit 1
 fi
 
-cd /home/red/434project/sortnet
+filedir=$(dirname "$(readlink -f "$0")")
+homedir=$(dirname "filedir")
 
-export SBT_OPTS="-Dlog4j.configurationFile=/home/red/434project/sortnet/conf/log4j2.xml"
+
+cd $filedir
+cd ..
+
+export SBT_OPTS="-Dlog4j.configurationFile=${filedir}/../conf/log4j2.xml"
 sbt "master/runMain com.cs434.sortnet.master.Master ${num_slaves}"
