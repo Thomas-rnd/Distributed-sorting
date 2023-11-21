@@ -11,10 +11,11 @@ import com.cs434.sortnet.core._
 object Master {
   private val port: Int = 9999
   private var numWorkers: Int = 0
-
-  private val workerMetadataMap: Map[String, WorkerMetadata] = HashMap[String, WorkerMetadata]()
-  val sampleKeys: Map[String, List[Key]] = HashMap[String, List[Key]]()
   private var connectedWorkers: Int = 0
+
+  private val workerMetadataMap: Map[String, WorkerMetadata] =
+    HashMap[String, WorkerMetadata]()
+  val sampleKeys: Map[String, List[Key]] = HashMap[String, List[Key]]()
 
   def main(args: Array[String]): Unit = {
     if (args.length != 1) {
@@ -25,7 +26,7 @@ object Master {
     numWorkers = args(0).toInt
 
     try {
-//======================================================      
+//======================================================
       println("Stage start : Register")
       val serverSocket = new ServerSocket(port)
       println(s"Le maître écoute sur le port $port")
@@ -38,10 +39,15 @@ object Master {
         val receivedObject = in.readObject
         if (receivedObject.isInstanceOf[RegisterRequest]) {
           val registerRequest = receivedObject.asInstanceOf[RegisterRequest]
-          
-          MasterServices.handleRegisterRequest(clientSocket, registerRequest, threadPool, workerMetadataMap,numWorkers)
-          
-          
+
+          MasterServices.handleRegisterRequest(
+            clientSocket,
+            registerRequest,
+            threadPool,
+            workerMetadataMap,
+            numWorkers
+          )
+
         } else {
           clientSocket.close()
         }
@@ -55,15 +61,24 @@ object Master {
 //======================================================
       println("Stage start : Sampling")
       // broadcast samplekeyrequest
-      MasterServices.sendRequests(workerMetadataMap, MessageType.SampleKey, sampleKeys = Some(sampleKeys))
+      MasterServices.sendRequests(
+        workerMetadataMap,
+        MessageType.SampleKey,
+        sampleKeys = Some(sampleKeys)
+      )
       println("Stage end : Sampling")
 
 //======================================================
       println("Stage start : Partitioning")
       // compute partitionPlan
-      val partitionPlan = MasterServices.computePartitionPlan(sampleKeys, numWorkers)
+      val partitionPlan =
+        MasterServices.computePartitionPlan(sampleKeys, numWorkers)
       // broadcast partitionPlan
-      MasterServices.sendRequests(workerMetadataMap, MessageType.SavePartitionPlan, partitionPlan = Some(partitionPlan))
+      MasterServices.sendRequests(
+        workerMetadataMap,
+        MessageType.SavePartitionPlan,
+        partitionPlan = Some(partitionPlan)
+      )
       println("Stage end : Partitioning")
 
 //======================================================
