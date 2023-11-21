@@ -1,0 +1,81 @@
+#!/bin/bash
+
+[ -z $1 ] && echo "Error: Argument missing ! Usage : worker <master IP:port> -I <input directory> <input directory> … <input directory> -O <output directory>" && exit 1
+ipport=$1
+shift
+
+inputdirs=()
+outputdir=""
+while :
+do
+    case "$1" in
+      -I | --input)
+          shift
+          while :
+          do
+              case "$1" in
+                "") break;;
+                -*) break;;
+                *) inputdirs+=( "$1" ) ; shift;;
+              esac
+          done;;
+      -O | --output)
+          shift
+          while :
+          do
+              case "$1" in
+                "") break;;
+                -*) break;;
+                *) outputdir="$1"; shift; break;;
+              esac
+          done;;
+      -*)
+          echo "Error: Unknown option: $1" >&2; exit 1;;
+      *)
+          break;;
+    esac
+done
+
+if [ "${#inputdirs[@]}" -lt 1 ]
+then
+  echo "Error: you need to provide at least one input folder"
+  exit 1
+fi
+[[ "$outputdir" == "" ]] && echo "Error: No output path provided" && exit 1
+
+
+
+
+for dir in $inputdirs; do
+    if [ ! -d $dir ] ; then
+      echo "Error: Directory not found : $dir" && exit 1
+    fi
+done
+if [ ! -d $outputdir ] ; then
+      echo "Error: Directory not found : $outputdir" && exit 1
+fi
+
+platform=""
+if [[ "$OSTYPE" == "linux-gnu"* ]]; then
+  platform="linux"
+else
+  echo "Error : Unsupported OS" && exit 1
+fi
+
+
+
+outputdir=$(readlink -f "$outputdir")
+
+for i in "${!inputdirs[@]}"; do
+    inputdirs[i]=$(readlink -f "${inputdirs[i]}")
+done
+
+rm -rf $outputdir
+mkdir $outputdir
+
+
+cd /home/red/remote/434project/sortnet
+
+export SBT_OPTS="-Dlog4j.configurationFile=/home/red/remote/434project/sortnet/conf/log4j2.xml"
+
+sbt "worker/runMain com.cs434.sortnet.worker.Worker ${ipport} ${outputdir} ${inputdirs[*]}"
