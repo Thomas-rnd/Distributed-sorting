@@ -1,35 +1,28 @@
 package com.cs434.sortnet.core
 
-import java.io.{
-  DataInputStream,
-  DataOutputStream,
-  IOException,
-  File,
-  Serializable
-}
+import java.io.{DataInputStream, DataOutputStream, IOException, File, Serializable}
 import scala.util.Random
 import scala.io.Source
 import java.io.{File, PrintWriter}
 
-/** Represents a block of records.
-  *
-  * @param records
-  *   The list of records (key and value) in the block.
-  */
+/**
+ * Represents a block of records.
+ *
+ * @param records The list of records (key and value) in the block.
+ */
 case class Block(records: List[Record]) extends Serializable {
-
-  /** Sorts the records based on the key.
-    *
-    * @return
-    *   A new Block with sorted records.
-    */
+  /**
+   * Sorts the records based on the key.
+   *
+   * @return A new Block with sorted records.
+   */
   def sorted: Block = Block(records.sortBy(_.key))
 
-  /** Serializes the Block to a byte array.
-    *
-    * @return
-    *   The serialized byte array.
-    */
+  /**
+   * Serializes the Block to a byte array.
+   *
+   * @return The serialized byte array.
+   */
   def toByteArray: Array[Byte] = {
     try {
       val dataSize = records.map(_.toByteArray.length).sum
@@ -60,13 +53,12 @@ case class Block(records: List[Record]) extends Serializable {
 @SerialVersionUID(7061933779652783196L)
 object Block extends Serializable {
 
-  /** Deserializes a Block from a byte array.
-    *
-    * @param bytes
-    *   The byte array to deserialize.
-    * @return
-    *   A new Block instance.
-    */
+  /**
+   * Deserializes a Block from a byte array.
+   *
+   * @param bytes The byte array to deserialize.
+   * @return A new Block instance.
+   */
   def fromByteArray(bytes: Array[Byte]): Block = {
     val dataInputStream = new DataInputStream(
       new java.io.ByteArrayInputStream(bytes)
@@ -87,26 +79,24 @@ object Block extends Serializable {
     Block(records)
   }
 
-  /** Reads a Block from a binary file.
-    *
-    * @param filePath
-    *   The path to the binary file.
-    * @return
-    *   A new Block instance.
-    */
+  /**
+   * Reads a Block from a binary file.
+   *
+   * @param filePath The path to the binary file.
+   * @return A new Block instance.
+   */
   def readFromBinaryFile(filePath: String): Block = {
     val bytes =
       scala.io.Source.fromFile(filePath, "ISO-8859-1").map(_.toByte).toArray
     fromByteArray(bytes)
   }
 
-  /** Writes a Block to a binary file with a newline at the end.
-    *
-    * @param block
-    *   The Block to write.
-    * @param filePath
-    *   The path to the binary file.
-    */
+  /**
+   * Writes a Block to a binary file with a newline at the end.
+   *
+   * @param block The Block to write.
+   * @param filePath The path to the binary file.
+   */
   def writeToBinaryFile(block: Block, filePath: String): Unit = {
     val os =
       new java.io.FileOutputStream(filePath, true) // 'true' for append mode
@@ -115,22 +105,15 @@ object Block extends Serializable {
     os.close()
   }
 
-  /** Partitions the Block based on a PartitionPlan.
-    *
-    * @param block
-    *   The Block to partition.
-    * @param plan
-    *   The PartitionPlan for partitioning.
-    * @param nameFile
-    *   The name of the file being partitioned.
-    * @return
-    *   A list of Partition instances.
-    */
-  def partition(
-      block: Block,
-      plan: PartitionPlan,
-      nameFile: String
-  ): List[Partition] = {
+  /**
+   * Partitions the Block based on a PartitionPlan.
+   *
+   * @param block The Block to partition.
+   * @param plan The PartitionPlan for partitioning.
+   * @param nameFile The name of the file being partitioned.
+   * @return A list of Partition instances.
+   */
+  def partition(block: Block, plan: PartitionPlan, nameFile: String): List[Partition] = {
     var indexPartition = 0
     plan.partitions.map { case (ip, keyRange) =>
       val startKey = keyRange.startKey
@@ -149,15 +132,13 @@ object Block extends Serializable {
     }
   }
 
-  /** Samples keys from the Block.
-    *
-    * @param block
-    *   The Block to sample keys from.
-    * @param maxSizeBytes
-    *   The maximum size in bytes for the sampled keys.
-    * @return
-    *   A list of sampled keys.
-    */
+  /**
+   * Samples keys from the Block.
+   *
+   * @param block The Block to sample keys from.
+   * @param maxSizeBytes The maximum size in bytes for the sampled keys.
+   * @return A list of sampled keys.
+   */
   def sampleKeys(block: Block, maxSizeBytes: Int): List[Key] = {
     val allKeys = block.records.map(_.key)
     val shuffledKeys = Random.shuffle(allKeys)
@@ -183,13 +164,12 @@ object Block extends Serializable {
     sampledKeys
   }
 
-  /** Reads a Block from an ASCII file.
-    *
-    * @param filePath
-    *   The path to the ASCII file.
-    * @return
-    *   A new Block instance.
-    */
+  /**
+   * Reads a Block from an ASCII file.
+   *
+   * @param filePath The path to the ASCII file.
+   * @return A new Block instance.
+   */
   def readFromASCIIFile(filePath: String): Block = {
     val lines = Source.fromFile(filePath).getLines().toList
     val validRecords = lines.flatMap { line =>
@@ -219,15 +199,13 @@ object Block extends Serializable {
     Block(validRecords)
   }
 
-  /** Writes a Block to an ASCII file.
-    *
-    * @param block
-    *   The Block to write.
-    * @param filePath
-    *   The path to the ASCII file.
-    * @return
-    *   A new Block instance.
-    */
+  /**
+   * Writes a Block to an ASCII file.
+   *
+   * @param block The Block to write.
+   * @param filePath The path to the ASCII file.
+   * @return A new Block instance.
+   */
   def writeToASCIIFile(block: Block, filePath: String): Block = {
     val writer = new PrintWriter(new File(filePath))
 
@@ -251,10 +229,7 @@ object Block extends Serializable {
     } catch {
       case e: Exception =>
         // Handle any exceptions that may occur during writing
-        throw new RuntimeException(
-          s"Error while writing Block to file: $filePath",
-          e
-        )
+        throw new RuntimeException(s"Error while writing Block to file: $filePath", e)
     } finally {
       // Close the writer to release system resources
       writer.close()
@@ -262,5 +237,33 @@ object Block extends Serializable {
 
     // Return a new Block instance
     Block(block.records)
+  }
+
+  /**
+  * Merge and Sort 2 given blocks to return 2 sorted blocks.
+  *
+  * @param blockA The BlockA to merge and sort.
+  * @param blockB The BlockB to merge and sort.
+  * @return A tuple of blockMin and blockMax.
+  */
+  def minMax(blockA: Block, blockB: Block): (Block, Block) = {
+    // Combine records from both blocks
+    val recordsList = blockA.records ++ blockB.records
+
+    // Sort the combined records by key
+    val sortedRecords = recordsList.sortBy(_.key)
+
+    // Split the sorted records into two blocks
+    val blockSize = sortedRecords.length
+    val blockMinRecords = sortedRecords.take(104857) // Adjust the number of records as needed
+    val blockMaxRecords = sortedRecords.drop(104857)
+
+    // Create Block instances for blockMin and blockMax
+    val blockMin = Block(blockMinRecords)
+    val blockMax = Block(blockMaxRecords)
+
+
+    // Return the tuple of blockMin and blockMax
+    (blockMin, blockMax)
   }
 }

@@ -2,173 +2,166 @@ package com.cs434.sortnet.worker
 
 import java.io._
 import java.net._
-import java.util.{ArrayList}
+import java.util.{ ArrayList }
 import scala.jdk.CollectionConverters
 
 import com.cs434.sortnet.network._
 import com.cs434.sortnet.core._
 
-object Worker {
+import org.apache.logging.log4j.scala.Logging
+
+object Worker extends Logging{
 
   private var masterIP: String = null
-  private val masterPort: Int = 9999
+  private var masterPort: Int = 0
 
   private var numWorkers: Int = 0
   private var partitionsList: List[Partition] = null
   private var partitionPlan: PartitionPlan = null
-  private var inputFolderPath: List[String] = List()
+  private var inputFolders: List[String] = List()
+  private var outputFolder: String = null
 
-  private var threadListen: Thread = null
+  private var threadListen: Thread = null 
 
   def main(args: Array[String]): Unit = {
-    if (args.length < 2) {
-      System.out.println(
-        "Utilisation : java Worker <adresse IP du maître> <input folder 1> [<input folder ...>]"
-      )
+    if (args.length < 3) {
+      logger.error("Usage : worker <masterIP:port> <output directory> <input directory> <input directory> … <input directory>")
       return
     }
 
-    masterIP = args(0)
-    // Concatenate input folders to the list starting from index 1
-    inputFolderPath = inputFolderPath ++ args.slice(1, args.length).toList
+    // Assuming the arguments are provided in the correct order as per the example usage
 
-    // Print the values in the inputFolderPath list
-    println("Input Folders: " + inputFolderPath.mkString(", "))
+    
+    masterIP = args(0).split(":")(0)
+    masterPort = args(0).split(":")(1).toInt
+    
+    // Parse input directories and output directory
+    outputFolder = args(1)
+    inputFolders = args.slice(2, args.length).toList
 
-    val testImputfolder = "/home/red/data/input"
+
+    // Printing parsed values for demonstration
+    logger.info(s"Master IP: $masterIP")
+    logger.info(s"Master Port: $masterPort")
+    logger.info(s"Input Folders: $inputFolders")
+    logger.info(s"Output Folder: $outputFolder")
 
     threadListen = new Thread()
 
     try {
       val socket: Socket = new Socket(masterIP, masterPort)
-      val out: ObjectOutputStream = new ObjectOutputStream(
-        socket.getOutputStream
-      )
+      val out: ObjectOutputStream = new ObjectOutputStream(socket.getOutputStream)
       val request: RegisterRequest = new RegisterRequest
       out.writeObject(request) // Envoie un message d'enregistrement
       var isDone: Boolean = false
 
       while (!isDone) {
         try {
-          val in: ObjectInputStream = new ObjectInputStream(
-            socket.getInputStream
-          )
+          val in: ObjectInputStream = new ObjectInputStream(socket.getInputStream)
           val receivedObject: AnyRef = in.readObject
           receivedObject match {
 
             case registerReply: RegisterReply =>
-              println(s"Registration done!")
+              logger.info(s"Registration done!")
 
             case sampleKeyRequest: SampleKeyRequest =>
-              println("SampleKeyRequest received!")
+              logger.info("SampleKeyRequest received!")
 
-              val mykeys = WorkerServices.sendSamples(testImputfolder)
-              val reply: SampleKeyReply = new SampleKeyReply(true, mykeys)
-              val out2: ObjectOutputStream = new ObjectOutputStream(
-                socket.getOutputStream
-              )
+              var myKeys: List[Key] = inputFolders.foldLeft(List[Key]()) { (accumulatedKeys, folderPath) =>
+                accumulatedKeys ++ WorkerServices.sendSamples(folderPath)
+              }
+
+              val reply: SampleKeyReply = new SampleKeyReply(true, myKeys)
+              
+              
+              val out2: ObjectOutputStream = new ObjectOutputStream(socket.getOutputStream)
               out2.writeObject(reply)
-              println("SampleKeyReply send!")
+              logger.info("SampleKeyReply send!")
 
             case savePartitionPlanRequest: SavePartitionPlanRequest =>
-              println("SavePartitionPlanRequest received!")
+              logger.info("SavePartitionPlanRequest received!")
 
               partitionPlan = savePartitionPlanRequest.partitionPlan
-              println("Partition Plan saved :")
-              println(partitionPlan)
+              logger.info("Partition Plan saved :")
+              logger.info(partitionPlan)
 
               numWorkers = partitionPlan.partitions.length
-              println(s"NumWorker = $numWorkers")
+              logger.info(s"NumWorker = $numWorkers")
 
-              println("Preparing for shuffling phase")
+              logger.info("Preparing for shuffling phase")
               threadListen = new Thread(new Runnable {
                 def run(): Unit = {
                   WorkerServices.handleSaveBlockRequest(numWorkers)
                 }
               })
               threadListen.start()
-              println("Listen Thread Start")
-              println("Preparation Done")
+              logger.info("Listen Thread Start")
+              logger.info("Preparation Done")
 
-              val reply: SavePartitionPlanReply = new SavePartitionPlanReply(
-                true
-              )
-              val out2: ObjectOutputStream = new ObjectOutputStream(
-                socket.getOutputStream
-              )
+              val reply: SavePartitionPlanReply = new SavePartitionPlanReply(true)
+              val out2: ObjectOutputStream = new ObjectOutputStream(socket.getOutputStream)
               out2.writeObject(reply)
-              println("SavePartitionPlanReply send!")
+              logger.info("SavePartitionPlanReply send!")
 
             case sortRequest: SortRequest =>
-              println("SortRequest received!")
-              println("Sorting...")
-              partitionsList =
-                WorkerServices.sortFiles(testImputfolder, partitionPlan)
+              logger.info("SortRequest received!")
+              logger.info("Sorting...")
+
+              partitionsList = inputFolders.flatMap(folderPath => WorkerServices.sortFiles(folderPath, partitionPlan))
 
               val reply: SortReply = new SortReply(true)
-              val out2: ObjectOutputStream = new ObjectOutputStream(
-                socket.getOutputStream
-              )
+              val out2: ObjectOutputStream = new ObjectOutputStream(socket.getOutputStream)
               out2.writeObject(reply)
-              println("SortReply send!")
+              logger.info("SortReply send!")
 
             case shuffleRequest: ShuffleRequest =>
-              println("ShuffleRequest received!")
-              println("Shuffling...")
+              logger.info("ShuffleRequest received!")
+              logger.info("Shuffling...")
 
               val threadSend = new Thread(new Runnable {
                 def run(): Unit = {
-                  WorkerServices.sendSaveBlockRequest(
-                    partitionPlan,
-                    partitionsList
-                  ) // partitions should be a List[Partition]
+                  WorkerServices.sendSaveBlockRequest(partitionPlan, partitionsList) //partitions should be a List[Partition]
                 }
               })
               threadSend.start()
-              println("Sending Thread Start")
+              logger.info("Sending Thread Start")
 
               threadListen.join()
               threadSend.join()
 
               val reply: ShuffleReply = new ShuffleReply(true)
-              val out2: ObjectOutputStream = new ObjectOutputStream(
-                socket.getOutputStream
-              )
+              val out2: ObjectOutputStream = new ObjectOutputStream(socket.getOutputStream)
               out2.writeObject(reply)
-              println("ShuffleReply send!")
+              logger.info("ShuffleReply send!")
 
             case mergeRequest: MergeRequest =>
-              println("MergeRequest received!")
-              println("Merging...")
+              logger.info("MergeRequest received!")
+              logger.info("Merging...")
               WorkerServices.mergeFiles("/home/red/data/tmp")
               val reply: MergeReply = new MergeReply(true)
-              val out2: ObjectOutputStream = new ObjectOutputStream(
-                socket.getOutputStream
-              )
+              val out2: ObjectOutputStream = new ObjectOutputStream(socket.getOutputStream)
               out2.writeObject(reply)
-              println("MergeReply send!")
+              logger.info("MergeReply send!")
 
             case terminateRequest: TerminateRequest =>
-              println("TerminateRequest received!")
-              println("Terminating...")
+              logger.info("TerminateRequest received!")
+              logger.info("Terminating...")
               val reply: TerminateReply = new TerminateReply(true)
-              val out2: ObjectOutputStream = new ObjectOutputStream(
-                socket.getOutputStream
-              )
+              val out2: ObjectOutputStream = new ObjectOutputStream(socket.getOutputStream)
               out2.writeObject(reply)
-              println("TerminateReply send!")
+              logger.info("TerminateReply send!")
               isDone = true
           }
         } catch {
           case e: ClassNotFoundException =>
-            e.printStackTrace()
+            logger.error(s"${e.getMessage}", e)
         }
       }
 
       socket.close()
     } catch {
       case e: IOException =>
-        e.printStackTrace()
+        logger.error(s"${e.getMessage}", e)
     }
   }
 }

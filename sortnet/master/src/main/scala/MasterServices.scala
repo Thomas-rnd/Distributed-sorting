@@ -8,18 +8,20 @@ import scala.collection.mutable.{Map, HashMap, ListBuffer}
 import com.cs434.sortnet.network._
 import com.cs434.sortnet.core._
 
-object MasterServices {
+import org.apache.logging.log4j.scala.Logging
+
+object MasterServices extends Logging{
 
   def handleRegisterRequest(
-      clientSocket: Socket,
-      registerRequest: RegisterRequest,
-      threadPool: ExecutorService,
-      workerMetadataMap: Map[String, WorkerMetadata],
-      numWorkers: Int
+    clientSocket: Socket,
+    registerRequest: RegisterRequest,
+    threadPool: ExecutorService,
+    workerMetadataMap: Map[String, WorkerMetadata],
+    numWorkers: Int
   ): Unit = {
     if (workerMetadataMap.size < numWorkers) {
       val clientIP = clientSocket.getInetAddress.getHostAddress
-      println(s"IP enregistrée : $clientIP")
+      logger.info(s"IP enregistrée : $clientIP")
 
       // Create a WorkerMetadata with clientIP and the associated socket
       val workerMetadata = WorkerMetadata(clientIP, 0, clientSocket, None)
@@ -33,16 +35,16 @@ object MasterServices {
         out.writeObject(reply)
       } catch {
         case e: IOException =>
-          e.printStackTrace()
+          logger.error(s"${e.getMessage}", e)
       }
     }
   }
 
   def sendRequests(
-      workerMetadataMap: Map[String, WorkerMetadata],
-      messageType: MessageType.Value,
-      partitionPlan: Option[PartitionPlan] = None,
-      sampleKeys: Option[Map[String, List[Key]]] = None
+    workerMetadataMap: Map[String, WorkerMetadata],
+    messageType: MessageType.Value,
+    partitionPlan: Option[PartitionPlan] = None,
+    sampleKeys: Option[Map[String, List[Key]]] = None
   ): Unit = {
     val threads = ListBuffer[Thread]()
 
@@ -52,18 +54,10 @@ object MasterServices {
           val workerThreadMetadata = workerMetadata
           messageType match {
             case MessageType.SampleKey =>
-              sendRequestThread(
-                workerThreadMetadata,
-                MessageType.SampleKey,
-                sampleKeys = sampleKeys
-              )
+              sendRequestThread(workerThreadMetadata, MessageType.SampleKey, sampleKeys = sampleKeys)
 
             case MessageType.SavePartitionPlan =>
-              sendRequestThread(
-                workerThreadMetadata,
-                MessageType.SavePartitionPlan,
-                partitionPlan = partitionPlan
-              )
+              sendRequestThread(workerThreadMetadata, MessageType.SavePartitionPlan, partitionPlan = partitionPlan)
 
             case MessageType.Sort =>
               sendRequestThread(workerThreadMetadata, MessageType.Sort)
@@ -78,7 +72,7 @@ object MasterServices {
               sendRequestThread(workerThreadMetadata, MessageType.Terminate)
 
             case _ =>
-              println(s"Unsupported message type: $messageType")
+              logger.info(s"Unsupported message type: $messageType")
           }
         }
       })
@@ -86,19 +80,16 @@ object MasterServices {
       thread.start()
     }
 
-    println(
-      s"Started ${threads.size} threads for ${messageType.toString} Requests."
-    )
+    logger.info(s"Started ${threads.size} threads for ${messageType.toString} Requests.")
 
     // Wait for all the threads to finish
     for (thread <- threads) {
       try {
         thread.join()
-        println(s"Thread joined: ${thread.getId}")
+        logger.info(s"Thread joined: ${thread.getId}")
       } catch {
         case e: InterruptedException =>
-          e.printStackTrace()
-          System.err.println(s"Thread join interrupted: ${e.getMessage}")
+          logger.error(s"Thread join interrupted: ${e.getMessage}")
       }
     }
 
@@ -107,13 +98,13 @@ object MasterServices {
       case MessageType.SampleKey =>
         sampleKeys match {
           case Some(sampleKeysFound) =>
-            println("All samples received:")
+            logger.info("All samples received:")
             for ((workerIP, keys) <- sampleKeysFound) {
-              println(s"Worker IP: $workerIP")
-              println(s"Sample Keys: $keys")
+              logger.info(s"Worker IP: $workerIP")
+              logger.info(s"Sample Keys: $keys")
             }
           case None =>
-            println("sampleKeys not provided for SampleKey")
+            logger.info("sampleKeys not provided for SampleKey")
         }
 
       case _ => // Handle other message types
@@ -121,10 +112,10 @@ object MasterServices {
   }
 
   def sendRequestThread(
-      workerMetadata: WorkerMetadata,
-      messageType: MessageType.Value,
-      partitionPlan: Option[PartitionPlan] = None,
-      sampleKeys: Option[Map[String, List[Key]]] = None
+    workerMetadata: WorkerMetadata,
+    messageType: MessageType.Value,
+    partitionPlan: Option[PartitionPlan] = None,
+    sampleKeys: Option[Map[String, List[Key]]] = None
   ): Unit = {
     try {
       val socket = workerMetadata.socket
@@ -144,11 +135,11 @@ object MasterServices {
                 val reply = receivedObject.asInstanceOf[SampleKeyReply]
                 val workerIP = workerMetadata.ip
                 val keys = reply.sampledKeys
-                println(s"Keys from worker $workerIP: $keys")
+                logger.info(s"Keys from worker $workerIP: $keys")
                 sampleKeysFound.put(workerIP, keys)
               }
             case None =>
-              println("sampleKeys not provided for SampleKey")
+              logger.info("sampleKeys not provided for SampleKey")
           }
 
         case MessageType.SavePartitionPlan =>
@@ -164,7 +155,7 @@ object MasterServices {
                 val reply = receivedObject.asInstanceOf[SavePartitionPlanReply]
               }
             case None =>
-              println("partitionPlan not provided for SavePartitionPlan")
+              logger.info("partitionPlan not provided for SavePartitionPlan")
           }
 
         case MessageType.Sort =>
@@ -216,96 +207,76 @@ object MasterServices {
           }
 
         case _ =>
-          println(s"Unsupported message type: $messageType")
+          logger.info(s"Unsupported message type: $messageType")
       }
     } catch {
       case e @ (_: IOException | _: ClassNotFoundException) =>
-        e.printStackTrace()
+        logger.error(s"${e.getMessage}", e)
     }
   }
 
-  /** Finds pivot keys in a sorted list for partitioning.
-    *
-    * @param sortedSampledKeys
-    *   A sorted list of sampled keys.
-    * @param numberOfWorkers
-    *   The number of workers/partitions.
-    * @return
-    *   List of pivot keys.
-    */
-  def findPivotKeys(
-      sortedSampledKeys: List[Key],
-      numberOfWorkers: Int
-  ): List[Key] = {
+  /**
+   * Finds pivot keys in a sorted list for partitioning.
+   *
+   * @param sortedSampledKeys A sorted list of sampled keys.
+   * @param numberOfWorkers   The number of workers/partitions.
+   * @return                  List of pivot keys.
+   */
+  def findPivotKeys(sortedSampledKeys: List[Key], numberOfWorkers: Int): List[Key] = {
     // Ensure there are enough keys for the specified number of workers
-    assert(
-      sortedSampledKeys.size >= numberOfWorkers,
-      "Not enough keys for the specified number of workers"
-    )
+    println(sortedSampledKeys.size)
+    println(sortedSampledKeys)
+    println(sortedSampledKeys.size)
+    assert(sortedSampledKeys.size >= numberOfWorkers, "Not enough keys for the specified number of workers")
 
     // Calculate the pivot index coefficient
     val pivotIndexCoefficient = sortedSampledKeys.size / numberOfWorkers
 
     // Find the value of each pivot
-    (1 until numberOfWorkers)
-      .map(i => sortedSampledKeys(i * pivotIndexCoefficient))
-      .toList
+    (1 until numberOfWorkers).map(i => sortedSampledKeys(i * pivotIndexCoefficient)).toList
   }
 
-  /** Generates an interleaved list of pivot keys along with min and max keys.
-    *
-    * @param pivots
-    *   List of pivot keys.
-    * @return
-    *   Interleaved list of keys.
-    */
+  /**
+   * Generates an interleaved list of pivot keys along with min and max keys.
+   *
+   * @param pivots List of pivot keys.
+   * @return       Interleaved list of keys.
+   */
   def generateInterleavedPivotList(pivots: List[Key]): List[Key] = {
     val minKey = Key(Array.fill(10)(0.toByte))
     val maxKey = Key(Array.fill(10)(127.toByte))
 
     // Interleave minKey, pivot, and pivot + 1, and append maxKey
-    val keyList: List[Key] = List(minKey) ++ pivots.flatMap(pivot =>
-      List(pivot, pivot.incrementByOne)
-    ) ++ List(maxKey)
+    val keyList: List[Key] = List(minKey) ++ pivots.flatMap(pivot => List(pivot, pivot.incrementByOne)) ++ List(maxKey)
     keyList
   }
 
-  /** Creates a list of KeyRange objects by aggregating keys.
-    *
-    * @param list
-    *   List of keys to be aggregated.
-    * @return
-    *   List of KeyRange objects.
-    */
+  /**
+   * Creates a list of KeyRange objects by aggregating keys.
+   *
+   * @param list List of keys to be aggregated.
+   * @return     List of KeyRange objects.
+   */
   def createKeyRangeByAggregatingKeys(list: List[Key]): List[KeyRange] = {
     // Ensure that the list has an even number of elements
-    assert(
-      list.size % 2 == 0,
-      "List must have an even number of elements for key range creation"
-    )
+    assert(list.size % 2 == 0, "List must have an even number of elements for key range creation")
 
     list match {
       // If there are at least two keys in the list, create a KeyRange and recurse on the rest of the list
-      case a :: b :: rest =>
-        KeyRange(a, b) :: createKeyRangeByAggregatingKeys(rest)
+      case a :: b :: rest => KeyRange(a, b) :: createKeyRangeByAggregatingKeys(rest)
       // If there are fewer than two keys, return an empty list
       case _ => Nil
     }
   }
 
-  /** Performs sampling to create key ranges for partitioning.
-    *
-    * @param sampledKeys
-    *   List containing a sample of keys.
-    * @param numberOfWorkers
-    *   The number of workers/partitions.
-    * @return
-    *   List of KeyRange objects representing the partitioning.
-    */
-  def createKeyRangeFromSampledKeys(
-      sampledKeys: List[Key],
-      numberOfWorkers: Int
-  ): List[KeyRange] = {
+  /**
+   * Performs sampling to create key ranges for partitioning.
+   *
+   * @param sampledKeys     List containing a sample of keys.
+   * @param numberOfWorkers The number of workers/partitions.
+   * @return                List of KeyRange objects representing the partitioning.
+   */
+  def createKeyRangeFromSampledKeys(sampledKeys: List[Key], numberOfWorkers: Int): List[KeyRange] = {
     val sortedKeys = sampledKeys.sorted
     val pivots = findPivotKeys(sortedKeys, numberOfWorkers)
     val samplingData = generateInterleavedPivotList(pivots)
@@ -316,31 +287,23 @@ object MasterServices {
     createKeyRangeByAggregatingKeys(samplingData)
   }
 
-  /** Computes the partition plan based on sampled keys and the number of
-    * workers.
-    *
-    * @param sampledKeys
-    *   Map containing sample keys for each worker.
-    * @param numWorkers
-    *   The number of workers/partitions.
-    * @return
-    *   PartitionPlan object representing the partitioning plan.
-    */
-  def computePartitionPlan(
-      sampledKeys: Map[String, List[Key]],
-      numWorkers: Int
-  ): PartitionPlan = {
+  /**
+   * Computes the partition plan based on sampled keys and the number of workers.
+   *
+   * @param sampledKeys Map containing sample keys for each worker.
+   * @param numWorkers  The number of workers/partitions.
+   * @return            PartitionPlan object representing the partitioning plan.
+   */
+  def computePartitionPlan(sampledKeys: Map[String, List[Key]], numWorkers: Int): PartitionPlan = {
     // Initialize an empty list to store partitions
     var partitions: List[(String, KeyRange)] = List.empty
-    val keyRanges = createKeyRangeFromSampledKeys(
-      sampledKeys.values.flatten.toList,
-      numWorkers
-    )
+    val keyRanges = createKeyRangeFromSampledKeys(sampledKeys.values.flatten.toList, numWorkers)
 
     // Associate the key(i) of map sampledKeys(i) with the keyRanges(i) and add this to partitions
     // Iterate over the keys in sampledKeys and associate them with corresponding keyRanges
-    sampledKeys.keys.zip(keyRanges).foreach { case (key, keyRange) =>
-      partitions = partitions :+ (key, keyRange)
+    sampledKeys.keys.zip(keyRanges).foreach {
+      case (key, keyRange) =>
+        partitions = partitions :+ (key, keyRange)
     }
 
     // Return the computed PartitionPlan
