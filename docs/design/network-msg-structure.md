@@ -1,4 +1,4 @@
-# Network Message Structures Documentation
+# Network Message Structures Documentation 2.0
 
 This document provides an overview of the network message structures used in our Scala project.
 
@@ -32,7 +32,7 @@ This document provides an overview of the network message structures used in our
 - **Usage:**
   - **Source:** Master
   - **Destination:** Worker
-  - **Utility:** Requests the Worker to sample keys.
+  - **Utility:** Requests the Worker to compute a sampling of is keys and send them to Master.
 - **Parameter:**
   - `None`: This message has no additional parameters.
 
@@ -75,29 +75,29 @@ This document provides an overview of the network message structures used in our
 
 ![SortReply drawio](https://github.com/AlexDevauchelle/434project/assets/70631774/e67c52d3-ab8b-4cde-b48b-7910aa88281c)
 
-## PartitionRequest
+## SavePartitionPlanRequest
 
-- **Description:** A message sent from the Master to a Worker to request partitioning.
+- **Description:** A message sent from the Master to a Worker to inform about partitionPlan.
 - **Usage:**
   - **Source:** Master
   - **Destination:** Worker
   - **Utility:** Requests the Worker to perform partitioning.
 - **Parameter:**
-  - `None`: This message has no additional parameters.
+  - `partitionPlan: PartitionPlan`: The partitionPlan compute by Master.
 
-![PartiReq drawio](https://github.com/AlexDevauchelle/434project/assets/70631774/9dabd0dd-372a-4ba4-96f7-8dd73542aa32)
+![savepartireq drawio](https://github.com/AlexDevauchelle/434project/assets/70631774/e57e0253-30d8-42e8-999d-ed54420ecc9c)
 
-## PartitionReply
+## SavePartitionPlanReply
 
-- **Description:** A message sent from a Worker to the Master in response to a partitioning request.
+- **Description:** A message sent from a Worker to the Master in response to a savePartitionPlan request.
 - **Usage:**
   - **Source:** Worker
   - **Destination:** Master
-  - **Utility:** Confirms or denies the success of the partitioning operation.
+  - **Utility:** Confirms or denies the success of the partitionPlan saving.
 - **Parameter:**
   - `success: Boolean`: Indicates whether the partitioning request was successful.
 
-![PartiReply drawio](https://github.com/AlexDevauchelle/434project/assets/70631774/36176329-37cf-4c7d-be7d-8c11f44beb00)
+![savepartireply drawio](https://github.com/AlexDevauchelle/434project/assets/70631774/8842119a-ae97-4fa2-bb6f-8817aaf481b9)
 
 ## ShuffleRequest
 
@@ -180,9 +180,9 @@ This document provides an overview of the network message structures used in our
   - **Utility:** Requests the target Worker to save a block.
 - **Parameter:**
   - `block: Block`: The block to be saved.
-  - `otherBlockToSend: Boolean`: Indicates whether the sending Worker has another block to send to the receiving Worker.
+  - `blockToSend: Int`: Indicates the number of block that the worker have to send to the receiving Worker.
 
-![SaveBlockReq drawio](https://github.com/AlexDevauchelle/434project/assets/70631774/fdab8cdf-c0d5-430f-a25a-10c972c5817e)
+![saveBlockReq drawio (1)](https://github.com/AlexDevauchelle/434project/assets/70631774/56205bb7-ef4c-41a0-8123-dc8f7becbffd)
 
 ## SaveBlockReply
 

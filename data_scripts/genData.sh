@@ -20,11 +20,16 @@ ip_addresses=("2.2.2.143" "2.2.2.144" "2.2.2.145"
 
 
 generate_data() {
-    ssh "$1" "~/gensort -a -b$2 $3 ~/data/partition.$4"
+    ssh "$1" "~/gensort -a -b$2 $3 ~/data/input/partition$4"
 }
 
-max_size=$((1*1024*1024*1024/100))  # 1 GB / 100b (100b size of a partition data file)
-gen_size=$((100*1024*1024/100))      # 100 MB / 100b
+
+# Calculate the maximum size in 100-byte blocks for 100 MB
+max_size=$((100 * 1024 * 1024 / 100))
+
+# Calculate the size in 100-byte blocks for 10 MB
+gen_size=$((10 * 1024 * 1024 / 100))
+
 max_nb_file=$((max_size/gen_size))
 gen_step=0
 # Boucle sur les adresses IP des workers
@@ -41,7 +46,7 @@ for ((i = 0; i < num_workers; i++)); do
         #ssh "$worker_ip" "~/gensort -a -b$gen_step $gen_size ~/data/partition.$i"
         gen_step=$((gen_step+gen_size))
     done
-    echo "Fichier généré sur $ip : ~/data/partition.X => X = 1 to $num_files"
+    echo "Fichier généré sur $ip : ~/data/input/partition.X => X = 1 to $num_files"
 done
 
 wait
