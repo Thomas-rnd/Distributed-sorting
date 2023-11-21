@@ -11,6 +11,7 @@
 - [x] Implement the the transfert protocol
 - [x] Preparation for progress report
 - [x] Testing transfert protocol
+- [x] Code refactoring
 
 ## Goals of the Week for Team Members
 
@@ -18,11 +19,13 @@
 
 - [x] Implement the the transfert protocol
 - [x] Testing transfert protocol
+- [x] Code refactoring
 
 ### Thomas
 
 - [x] Preparation for progress report
 - [x] Testing transfert protocol
+- [x] Code refactoring
 
 ## Questions
 
