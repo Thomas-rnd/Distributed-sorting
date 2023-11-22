@@ -1,35 +1,37 @@
 # Project Milestones
 
-State : Not yet started / In progress / Done
-
 ## Milestone #1 : 10/16 - 11/12 (Design)
 
 - [x] Generate input Data
 - [x] Overall flow chart design
-- [x] Choosing Communication library, Programming environment, Logging system
+- [x] Choosing communication library, Programming environment, Logging system
 - [x] Choosing data structure for sampling
 - [x] Choosing data structure for sorting
 - [x] Choosing data structure for partitioning
 - [x] Choosing data structure for shuffling
 - [x] Choosing data structure for merging
-- [ ] Sequence diagram on communication protocol
+- [x] Documentation report : Data structure design
+- [x] Network data structure
+- [x] Sequence diagram on communication protocol
 
 ## Milestone #2 : 11/13 - 11/26 (Implementation 1/2)
 
-- [ ] Connection Master-Worker
-- [ ] Communication sampling task
-- [ ] Sample data send and received
-- [ ] Key range attribution and broadcasted
-- [ ] Communication sorting task
-- [ ] Sorting file
-- [ ] Partition file given key range during sorting
-- [ ] Testing partial solution
+- [x] Connection Master-Worker
+- [x] Setup logger (log4j)
+- [x] Communication sampling task
+- [x] Sampling of data
+- [x] Send and received sampled data
+- [x] Key range attribution and broadcasted
+- [x] Communication sorting task
+- [x] Sorting file
+- [x] Partition file given partition plan
+- [x] Testing partial solution
 
 ## Milestone #3 : 11/27 - 12/03 (Implementation 2/2)
 
-- [ ] Communication shuffling task
-- [ ] File transfer
+- [x] Communication shuffling task
+- [x] File transfer between worker
 - [ ] Communication merging task
 - [ ] Merging method
-- [ ] Output result
+- [ ] Validating output result (valsort)
 - [ ] Testing overall solution
