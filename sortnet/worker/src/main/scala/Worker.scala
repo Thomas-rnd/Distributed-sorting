@@ -137,7 +137,7 @@ object Worker extends Logging{
             case mergeRequest: MergeRequest =>
               logger.info("MergeRequest received!")
               logger.info("Merging...")
-              WorkerServices.mergeFiles("/home/red/data/tmp")
+              WorkerServices.mergeFiles("/home/red/data/tmp",outputFolder)
               val reply: MergeReply = new MergeReply(true)
               val out2: ObjectOutputStream = new ObjectOutputStream(socket.getOutputStream)
               out2.writeObject(reply)

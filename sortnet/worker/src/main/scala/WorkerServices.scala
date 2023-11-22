@@ -233,51 +233,14 @@ def sortFiles(folderPath: String, partitionPlan: PartitionPlan): List[Partition]
     threads.foreach(_.join())
   }
 
-  /**
-  * Merges files in the specified folder and writes the sorted output to a file.
-  *
-  * @param folderPath Path to the folder containing data files.
-  */
-  /*def mergeFiles(folderPath: String): Unit = {
-    val folder = new File(folderPath)
 
-    // Ensure that the folder exists and is a directory
-    assert(folder.exists() && folder.isDirectory, s"$folderPath is not a valid directory")
-
-    val files = folder.listFiles().filter(_.isFile)
-
-    // Ensure that there are files to merge
-    assert(files.nonEmpty, "No files found in the specified directory")
-
-    val mergedRecords = files.flatMap { file =>
-      val path = file.getAbsolutePath
-      
-      val records = Block.readFromASCIIFile(path).records
-      
-      // Delete the file after reading its records
-      Files.delete(Paths.get(path))
-      
-      records
-    }.toList
-
-    // Define the output file path
-    val outputFile = "/home/red/data/output/partition.1"
-
-    // Ensure that there are records to merge and sort
-    assert(mergedRecords.nonEmpty, "No records found to merge")
-    
-    // Sort the merged records and write them to the output file
-    val sortedOutput = Block(mergedRecords).sorted
-    Block.writeToASCIIFile(sortedOutput, outputFile)
-  }*/
 
   /**
   * Merges files in the specified folder and writes the sorted output to a file.
   *
   * @param folderPath Path to the folder containing data files.
   */
-  def mergeFiles(folderPath: String): Unit = {
-    val outputPath ="/home/red/data/output"
+  def mergeFiles(folderPath: String,outputPath: String): Unit = {
     var id = 1
 
     val folder = new File(folderPath)
