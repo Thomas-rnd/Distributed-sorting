@@ -19,13 +19,14 @@ object Worker extends Logging{
   private var partitionsList: List[Partition] = null
   private var partitionPlan: PartitionPlan = null
   private var inputFolders: List[String] = List()
+  private var input_data_type: String = null
   private var outputFolder: String = null
 
   private var threadListen: Thread = null 
 
   def main(args: Array[String]): Unit = {
-    if (args.length < 3) {
-      logger.error("Usage : worker <masterIP:port> <output directory> <input directory> <input directory> … <input directory>")
+    if (args.length < 4) {
+      logger.error("Usage : worker <masterIP:port> <output directory> <input data type> <input directory> <input directory> … <input directory>")
       return
     }
 
@@ -37,7 +38,9 @@ object Worker extends Logging{
     
     // Parse input directories and output directory
     outputFolder = args(1)
-    inputFolders = args.slice(2, args.length).toList
+
+    input_data_type = args(2)
+    inputFolders = args.slice(3, args.length).toList
 
 
     // Printing parsed values for demonstration
@@ -68,7 +71,7 @@ object Worker extends Logging{
               logger.info("SampleKeyRequest received!")
 
               var myKeys: List[Key] = inputFolders.foldLeft(List[Key]()) { (accumulatedKeys, folderPath) =>
-                accumulatedKeys ++ WorkerServices.sendSamples(folderPath)
+                accumulatedKeys ++ WorkerServices.sendSamples(folderPath, input_data_type)
               }
 
               val reply: SampleKeyReply = new SampleKeyReply(true, myKeys.toArray)
@@ -91,7 +94,7 @@ object Worker extends Logging{
               logger.info("Preparing for shuffling phase")
               threadListen = new Thread(new Runnable {
                 def run(): Unit = {
-                  WorkerServices.handleSaveBlockRequest(numWorkers)
+                  WorkerServices.handleSaveBlockRequest(numWorkers, input_data_type)
                 }
               })
               threadListen.start()
@@ -107,7 +110,7 @@ object Worker extends Logging{
               logger.info("SortRequest received!")
               logger.info("Sorting...")
 
-              partitionsList = inputFolders.flatMap(folderPath => WorkerServices.sortFiles(folderPath, partitionPlan))
+              partitionsList = inputFolders.flatMap(folderPath => WorkerServices.sortFiles(folderPath, partitionPlan, input_data_type))
 
               val reply: SortReply = new SortReply(true)
               val out2: ObjectOutputStream = new ObjectOutputStream(socket.getOutputStream)
@@ -120,7 +123,7 @@ object Worker extends Logging{
 
               val threadSend = new Thread(new Runnable {
                 def run(): Unit = {
-                  WorkerServices.sendSaveBlockRequest(partitionPlan, partitionsList) //partitions should be a List[Partition]
+                  WorkerServices.sendSaveBlockRequest(partitionPlan, partitionsList, input_data_type) //partitions should be a List[Partition]
                 }
               })
               threadSend.start()
@@ -137,7 +140,7 @@ object Worker extends Logging{
             case mergeRequest: MergeRequest =>
               logger.info("MergeRequest received!")
               logger.info("Merging...")
-              WorkerServices.mergeFiles("/home/red/data/tmp",outputFolder)
+              WorkerServices.mergeFiles("/home/red/data/tmp",outputFolder,input_data_type)
               val reply: MergeReply = new MergeReply(true)
               val out2: ObjectOutputStream = new ObjectOutputStream(socket.getOutputStream)
               out2.writeObject(reply)

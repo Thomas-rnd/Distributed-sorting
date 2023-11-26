@@ -9,6 +9,10 @@ import java.io.IOException
 @SerialVersionUID(3403353340572833574L)
 case class Key(bytes: Array[Byte]) extends Ordered[Key] with Serializable {
 
+  def toUnsignedByte(byteValue: Byte): Int = {
+    byteValue.toInt & 0xFF
+  }
+  
   /**
    * Compares this key with another key.
    *
@@ -23,8 +27,7 @@ case class Key(bytes: Array[Byte]) extends Ordered[Key] with Serializable {
 
     var i = 0
     while (i < length) {
-      val cmp = thisBytes(i) - thatBytes(i)
-      assert(cmp >= Byte.MinValue && cmp <= Byte.MaxValue, "Comparison result out of byte range")
+      val cmp = toUnsignedByte(thisBytes(i)) - toUnsignedByte(thatBytes(i))
       if (cmp != 0) return cmp
       i += 1
     }

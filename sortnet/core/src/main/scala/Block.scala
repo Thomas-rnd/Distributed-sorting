@@ -1,6 +1,6 @@
 package com.cs434.sortnet.core
 
-import java.io.{DataInputStream, DataOutputStream, IOException, File, Serializable}
+import java.io.{DataInputStream, DataOutputStream, FileInputStream, FileOutputStream, IOException, File, Serializable}
 import scala.util.Random
 import scala.io.Source
 import java.io.{File, PrintWriter}
@@ -78,22 +78,127 @@ object Block extends Serializable {
    * @param filePath The path to the binary file.
    * @return A new Block instance.
    */
-  def readFromBinaryFile(filePath: String): Block = {
-    val bytes = scala.io.Source.fromFile(filePath, "ISO-8859-1").map(_.toByte).toArray
-    fromByteArray(bytes)
+  def readFromByteFile(filePath: String): Block = {
+    val dataInputStream = new DataInputStream(new FileInputStream(filePath))
+
+    try {
+      val bytes = new Array[Byte](dataInputStream.available())
+      dataInputStream.readFully(bytes)
+      Block.fromByteArray(bytes)
+    } finally {
+      dataInputStream.close()
+    }
   }
 
   /**
-   * Writes a Block to a binary file with a newline at the end.
+   * Reads a Block from an ASCII file.
+   *
+   * @param filePath The path to the ASCII file.
+   * @return A new Block instance.
+   */
+  def readFromASCIIFile(filePath: String): Block = {
+    val lines = Source.fromFile(filePath).getLines().toList
+    val validRecords = lines.flatMap { line =>
+      if (line.length >= 10) {
+        val keyStr = line.take(10)
+        val dataStr = line.drop(10) + "\r\n"
+
+        val keyBytes = keyStr.getBytes("UTF-8")
+        val dataBytes = dataStr.getBytes("UTF-8")
+        // Assertions to check the sizes of key and value
+        assert(keyBytes.length == Key.keySize, s"The key read from the file has the wrong size: expected " +
+          s"${Key.keySize}, actual ${keyBytes.length}")
+        assert(dataBytes.length == Value.valueSize, s"The value read from the file has the wrong size: expected" +
+          s"${Value.valueSize}, actual ${dataBytes.length}")
+
+        Some(Record(Key(keyBytes), Value(dataBytes)))
+      } else {
+        None
+      }
+    }
+    Block(validRecords)
+  }
+
+  /**
+   * Reads a Block from a file.
+   *
+   * @param filePath The path to the binary file.
+   * @param input_data_type Input data type ("byte" or "ascii").
+   * @return A new Block instance.
+   */
+  def readFromFile(filePath: String, input_data_type: String): Block = {
+    if (input_data_type == "ascii") {
+      readFromASCIIFile(filePath)
+    } else if (input_data_type == "byte") {
+      readFromByteFile(filePath)
+    } else {
+      throw new IllegalArgumentException("Invalid input_data_type. Must be 'byte' or 'ascii'.")
+    }
+  }
+
+  /**
+   * Writes a Block to a binary file.
    *
    * @param block The Block to write.
    * @param filePath The path to the binary file.
    */
-  def writeToBinaryFile(block: Block, filePath: String): Unit = {
-    val os = new java.io.FileOutputStream(filePath, true)  // 'true' for append mode
-    os.write(block.toByteArray)
-    os.write("\n".getBytes("UTF-8"))  // append newline
-    os.close()
+  def writeToByteFile(block: Block, filePath: String): Unit = {
+    val dataOutputStream = new DataOutputStream(new FileOutputStream(filePath))
+
+    try {
+      val byteArray = block.toByteArray
+      dataOutputStream.write(byteArray)
+    } finally {
+      dataOutputStream.close()
+    }
+  }
+
+  /**
+   * Writes a Block to an ASCII file.
+   *
+   * @param block The Block to write.
+   * @param filePath The path to the ASCII file.
+   * @return A new Block instance.
+   */
+  def writeToASCIIFile(block: Block, filePath: String): Unit = {
+    val writer = new PrintWriter(new File(filePath))
+
+    try {
+      block.records.foreach { record =>
+        val keyStr = new String(record.key.bytes, "UTF-8")
+        val dataStr = new String(record.value.bytes, "UTF-8")
+        assert(keyStr.getBytes("UTF-8").length == Key.keySize, s"The key written to the file has the wrong size: expected " +
+          s"${Key.keySize}, actual ${keyStr.getBytes("UTF-8").length}")
+        assert(dataStr.getBytes("UTF-8").length == Value.valueSize, s"The value written to the file has the wrong size: expected " +
+          s"${Value.valueSize}, actual ${dataStr.getBytes("UTF-8").length}")
+
+        writer.print(keyStr + dataStr)
+      }
+    } catch {
+      case e: Exception =>
+        // Handle any exceptions that may occur during writing
+        throw new RuntimeException(s"Error while writing Block to file: $filePath", e)
+    } finally {
+      // Close the writer to release system resources
+      writer.close()
+    }
+  }
+
+  /**
+   * Writes a Block to a file.
+   *
+   * @param block The Block to write.
+   * @param data_type Input data type ("byte" or "ascii").
+   * @param filePath The path to the binary file.
+   */
+  def writeToFile(block: Block, filePath: String, data_type: String): Unit = {
+    if (data_type == "ascii") {
+      writeToASCIIFile(block, filePath)
+    } else if (data_type == "byte") {
+      writeToByteFile(block, filePath)
+    } else {
+      throw new IllegalArgumentException("Invalid data_type. Must be 'byte' or 'ascii'.")
+    }
   }
 
   /**
@@ -152,75 +257,12 @@ object Block extends Serializable {
   }
 
   /**
-   * Reads a Block from an ASCII file.
+   * Merge and Sort 2 given blocks to return 2 sorted blocks.
    *
-   * @param filePath The path to the ASCII file.
-   * @return A new Block instance.
+   * @param blockA The BlockA to merge and sort.
+   * @param blockB The BlockB to merge and sort.
+   * @return A tuple of blockMin and blockMax.
    */
-  def readFromASCIIFile(filePath: String): Block = {
-    val lines = Source.fromFile(filePath).getLines().toList
-    val validRecords = lines.flatMap { line =>
-      if (line.length >= 10) {
-        val keyStr = line.take(10)
-        val dataStr = line.drop(10) + "\r\n"
-
-        val keyBytes = keyStr.getBytes("UTF-8")
-        val dataBytes = dataStr.getBytes("UTF-8")
-        // Assertions to check the sizes of key and value
-        assert(keyBytes.length == Key.keySize, s"The key read from the file has the wrong size: expected " +
-          s"${Key.keySize}, actual ${keyBytes.length}")
-        assert(dataBytes.length == Value.valueSize, s"The value read from the file has the wrong size: expected" +
-          s"${Value.valueSize}, actual ${dataBytes.length}")
-
-        Some(Record(Key(keyBytes), Value(dataBytes)))
-      } else {
-        None
-      }
-    }
-    Block(validRecords)
-  }
-
-  /**
-   * Writes a Block to an ASCII file.
-   *
-   * @param block The Block to write.
-   * @param filePath The path to the ASCII file.
-   * @return A new Block instance.
-   */
-  def writeToASCIIFile(block: Block, filePath: String): Block = {
-    val writer = new PrintWriter(new File(filePath))
-
-    try {
-      block.records.foreach { record =>
-        val keyStr = new String(record.key.bytes, "UTF-8")
-        val dataStr = new String(record.value.bytes, "UTF-8")
-        assert(keyStr.getBytes("UTF-8").length == Key.keySize, s"The key written to the file has the wrong size: expected " +
-          s"${Key.keySize}, actual ${keyStr.getBytes("UTF-8").length}")
-        assert(dataStr.getBytes("UTF-8").length == Value.valueSize, s"The value written to the file has the wrong size: expected " +
-          s"${Value.valueSize}, actual ${dataStr.getBytes("UTF-8").length}")
-
-        writer.print(keyStr + dataStr)
-      }
-    } catch {
-      case e: Exception =>
-        // Handle any exceptions that may occur during writing
-        throw new RuntimeException(s"Error while writing Block to file: $filePath", e)
-    } finally {
-      // Close the writer to release system resources
-      writer.close()
-    }
-
-    // Return a new Block instance
-    Block(block.records)
-  }
-
-  /**
-  * Merge and Sort 2 given blocks to return 2 sorted blocks.
-  *
-  * @param blockA The BlockA to merge and sort.
-  * @param blockB The BlockB to merge and sort.
-  * @return A tuple of blockMin and blockMax.
-  */
   def minMax(blockA: Block, blockB: Block): (Block, Block) = {
     // Combine records from both blocks
     val recordsList = blockA.records ++ blockB.records

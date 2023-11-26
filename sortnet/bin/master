@@ -1,7 +1,7 @@
 #!/bin/bash
 
 [ -z $1 ] && echo "Error: Argument missing ! Usage : master <# of workers>" && exit 1
-[ "$1" -ge 1 ] 2>/dev/null || (echo "Error: Invalid argument <NUM_SLAVES>: ${1}" && exit 1)
+[ "$1" -ge 1 ] 2>/dev/null || (echo "Error: Invalid argument <NUM_WORKERS>: ${1}" && exit 1)
 num_slaves=$1
 
 platform=""

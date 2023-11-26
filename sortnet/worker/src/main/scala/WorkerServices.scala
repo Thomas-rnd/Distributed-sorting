@@ -13,13 +13,14 @@ import org.apache.logging.log4j.scala.Logging
 
 object  WorkerServices extends Logging{
 
- /**
+/**
  * Sends sampled keys from the specified folder.
  *
- * @param folderPath Path to the folder containing data files.
- * @return           List of sampled keys.
+ * @param folderPath     Path to the folder containing data files.
+ * @param input_data_type Input data type ("byte" or "ascii").
+ * @return               List of sampled keys.
  */
-def sendSamples(folderPath: String): List[Key] = {
+def sendSamples(folderPath: String, input_data_type: String): List[Key] = {
   val folder = new File(folderPath)
 
   // Ensure that the folder exists and is a directory
@@ -31,7 +32,8 @@ def sendSamples(folderPath: String): List[Key] = {
   assert(files.nonEmpty, "No files found in the specified directory")
 
   val sampledData = files.flatMap { file =>
-    val block = Block.readFromASCIIFile(file.getAbsolutePath)
+
+    val block = Block.readFromFile(file.getAbsolutePath, input_data_type)
     
     // Define the sampling rate and calculate the maximum number of keys to send
     val samplingRate = 0.05
@@ -56,9 +58,10 @@ def sendSamples(folderPath: String): List[Key] = {
  *
  * @param folderPath    Path to the folder containing data files.
  * @param partitionPlan The partition plan for sorting.
+ * @param input_data_type Input data type ("byte" or "ascii").
  * @return              List of sorted partitions.
  */
-def sortFiles(folderPath: String, partitionPlan: PartitionPlan): List[Partition] = {
+def sortFiles(folderPath: String, partitionPlan: PartitionPlan, input_data_type: String): List[Partition] = {
   val folder = new File(folderPath)
 
   // Ensure that the folder exists and is a directory
@@ -70,7 +73,7 @@ def sortFiles(folderPath: String, partitionPlan: PartitionPlan): List[Partition]
     val fileName = file.getName
     val path = file.getAbsolutePath
     
-    val block = Block.readFromASCIIFile(path)
+    val block = Block.readFromFile(path, input_data_type)
     
     // Sort the block and partition it based on the given partition plan
     val sortedBlock = block.sorted
@@ -84,7 +87,7 @@ def sortFiles(folderPath: String, partitionPlan: PartitionPlan): List[Partition]
 }
 
 
-  def handleSaveBlockRequest(numWorkers: Int): Unit = {
+  def handleSaveBlockRequest(numWorkers: Int, data_type: String): Unit = {
     // Start a new WorkerSaveBlockThread where the worker will listen on port 9988
     val serverSocket = new ServerSocket(9988)
     logger.info("Worker is listening on port 9988 for SaveBlockRequest")
@@ -102,7 +105,7 @@ def sortFiles(folderPath: String, partitionPlan: PartitionPlan): List[Partition]
         val saveBlockRequest = receivedObject.asInstanceOf[SaveBlockRequest]
         val thread = new Thread(new Runnable {
                 def run(): Unit = {
-                  saveBlocksFromWorker(clientSocket,saveBlockRequest)
+                  saveBlocksFromWorker(clientSocket, saveBlockRequest, data_type)
                 }
         })
         threads+=thread
@@ -130,7 +133,7 @@ def sortFiles(folderPath: String, partitionPlan: PartitionPlan): List[Partition]
     }
   }
 
-  def saveBlocksFromWorker(clientSocket: Socket,saveBlockRequest: SaveBlockRequest): Unit = {
+  def saveBlocksFromWorker(clientSocket: Socket,saveBlockRequest: SaveBlockRequest, data_type: String): Unit = {
     try {
       
       val clientIP = clientSocket.getInetAddress.getHostAddress
@@ -142,7 +145,7 @@ def sortFiles(folderPath: String, partitionPlan: PartitionPlan): List[Partition]
       while (nbBlockToSave != 0) {
         logger.info(s"Worker $clientIP have $nbBlockToSave block to send.")
         val pathToFile = "/home/red/data/tmp/partition_" + clienIPClean + "_" + nbBlockToSave
-        Block.writeToASCIIFile(blockToSave, pathToFile)
+        Block.writeToFile(blockToSave, pathToFile, data_type)
 
         val in = new ObjectInputStream(clientSocket.getInputStream)
         val receivedObject = in.readObject
@@ -162,7 +165,7 @@ def sortFiles(folderPath: String, partitionPlan: PartitionPlan): List[Partition]
     }
   }
 
-  def sendSaveBlockRequest(partitionPlan: PartitionPlan, partitionsToSendList: List[Partition]): Unit = {
+  def sendSaveBlockRequest(partitionPlan: PartitionPlan, partitionsToSendList: List[Partition], input_data_type: String): Unit = {
     val myIP = InetAddress.getLocalHost.getHostAddress
     logger.info(s"My IP is : $myIP")
     // Create a mutable list to store threads
@@ -194,7 +197,7 @@ def sortFiles(folderPath: String, partitionPlan: PartitionPlan): List[Partition]
 
                 partitionsToSend.foreach { partitionToSend =>
                   // Read the block from the file
-                  val block = Block.readFromASCIIFile(partitionToSend.pathToBlockFile)
+                  val block = Block.readFromFile(partitionToSend.pathToBlockFile, input_data_type)
 
                   // Create a SaveBlockRequest
                   val saveBlockRequest = new SaveBlockRequest(block.toByteArray, nbFileToSend)
@@ -240,7 +243,7 @@ def sortFiles(folderPath: String, partitionPlan: PartitionPlan): List[Partition]
   *
   * @param folderPath Path to the folder containing data files.
   */
-  def mergeFiles(folderPath: String,outputPath: String): Unit = {
+  def mergeFiles(folderPath: String,outputPath: String, input_data_type: String): Unit = {
     var id = 1
 
     val folder = new File(folderPath)
@@ -254,12 +257,12 @@ def sortFiles(folderPath: String, partitionPlan: PartitionPlan): List[Partition]
     while (filesToMerge.nonEmpty) {
       // fileA = first file of the list filesToMerge
       val fileA = filesToMerge.head
-      var blockMin = Block.readFromASCIIFile(fileA.getAbsolutePath)
+      var blockMin = Block.readFromFile(fileA.getAbsolutePath, input_data_type) 
       Files.delete(Paths.get(fileA.getAbsolutePath))
 
       // Iterate through the rest of the files
       for (i <- 1 until filesToMerge.length) {
-        val blockB = Block.readFromASCIIFile(filesToMerge(i).getAbsolutePath)
+        val blockB = Block.readFromFile(filesToMerge(i).getAbsolutePath, input_data_type)
         Files.delete(Paths.get(filesToMerge(i).getAbsolutePath))
 
         // Merge the blocks and get the min and max blocks
@@ -268,7 +271,7 @@ def sortFiles(folderPath: String, partitionPlan: PartitionPlan): List[Partition]
         // Write the max block to a new file only if it contains records
         if (blockMaxNew.records.nonEmpty) {
           val maxFilePath = folderPath + s"/maxBlock_$i"
-          Block.writeToASCIIFile(blockMaxNew, maxFilePath)
+          Block.writeToFile(blockMaxNew, maxFilePath, input_data_type)
         }
 
         // Update the blockMin for the next iteration
@@ -277,7 +280,7 @@ def sortFiles(folderPath: String, partitionPlan: PartitionPlan): List[Partition]
 
       // Write the final min block to the output file
       val finalMinFilePath = outputPath + s"/partition.$id"
-      Block.writeToASCIIFile(blockMin, finalMinFilePath)
+      Block.writeToFile(blockMin, finalMinFilePath, input_data_type)
       id = id + 1
 
 

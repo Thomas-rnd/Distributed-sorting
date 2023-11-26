@@ -1,14 +1,18 @@
 #!/bin/bash
 
-[ -z $1 ] && echo "Error: Argument missing ! Usage : worker <master IP:port> -I <input directory> <input directory> … <input directory> -O <output directory>" && exit 1
+[ -z $1 ] && echo "Error: Argument missing ! Usage : worker <master IP:port> -I <input directory> <input directory> … <input directory> -O <output directory> [-ascii]" && exit 1
 ipport=$1
 shift
 
 inputdirs=()
 outputdir=""
+input_data_type="byte"  # Valeur par défaut
 while :
 do
     case "$1" in
+      -ascii)
+            input_data_type="ascii"
+            shift;;
       -I | --input)
           shift
           while :
@@ -83,4 +87,4 @@ cd ..
 
 export SBT_OPTS="-Dlog4j.configurationFile=${filedir}/../conf/log4j2.xml"
 
-sbt "worker/runMain com.cs434.sortnet.worker.Worker ${ipport} ${outputdir} ${inputdirs[*]}"
+sbt "worker/runMain com.cs434.sortnet.worker.Worker ${ipport} ${outputdir} ${input_data_type} ${inputdirs[*]}"
