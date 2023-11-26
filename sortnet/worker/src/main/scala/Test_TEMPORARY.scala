@@ -14,9 +14,9 @@ object Alex {
 
   def main(args: Array[String]): Unit = {
   
-  
+  /*
   // Test reading a file and creating a Block instance
-  val inputFile = "/home/red/data/input/partition2"
+  val inputFile = "/home/red/data/output/partition2"
   val block = Block.readFromFile(inputFile,"ascii")
   println("Block created from file:")
   //println(block)
@@ -32,7 +32,12 @@ object Alex {
   val outputFile = "/home/red/data/input/partition2COPY"
   //Block.writeToByteFile(block, outputFile)
   Block.writeToFile(updatedBlock, outputFile,"ascii")
-  //println(s"Updated Block written to $outputFile")
+  //println(s"Updated Block written to $outputFile")*/
+
+
+  
+
+
 
   }
 }
