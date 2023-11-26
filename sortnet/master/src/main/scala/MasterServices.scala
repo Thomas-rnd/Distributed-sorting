@@ -241,7 +241,7 @@ object MasterServices extends Logging{
    */
   def generateInterleavedPivotList(pivots: List[Key]): List[Key] = {
     val minKey = Key(Array.fill(10)(0.toByte))
-    val maxKey = Key(Array.fill(10)(127.toByte))
+    val maxKey = Key(Array.fill(10)(-127.toByte))
 
     // Interleave minKey, pivot, and pivot + 1, and append maxKey
     val keyList: List[Key] = List(minKey) ++ pivots.flatMap(pivot => List(pivot, pivot.incrementByOne)) ++ List(maxKey)

@@ -46,7 +46,6 @@ fi
 echo "all dir = ${inputdirs[*]}"
 
 for dir in ${inputdirs[*]}; do
-    echo "test dir $dir"
     if [ ! -d $dir ] ; then
       echo "Error: Directory not found : $dir" && exit 1
     fi

@@ -84,7 +84,14 @@ object Block extends Serializable {
     try {
       val bytes = new Array[Byte](dataInputStream.available())
       dataInputStream.readFully(bytes)
-      Block.fromByteArray(bytes)
+      val block = Block.fromByteArray(bytes)
+
+      // Add assertions to check key length
+      block.records.foreach { record =>
+        assert(record.key.bytes.length == Key.keySize, s"Invalid key length for record in file: $filePath")
+      }
+
+      block
     } finally {
       dataInputStream.close()
     }
@@ -209,7 +216,7 @@ object Block extends Serializable {
    * @param nameFile The name of the file being partitioned.
    * @return A list of Partition instances.
    */
-  def partition(block: Block, plan: PartitionPlan, nameFile: String): List[Partition] = {
+  def partition(block: Block, plan: PartitionPlan, nameFile: String, input_data_type: String): List[Partition] = {
     var indexPartition = 0
     plan.partitions.toList.map { case (ip, keyRange) =>
       val startKey = keyRange.startKey
@@ -220,7 +227,7 @@ object Block extends Serializable {
       )
 
       val pathToPartition = "/home/red/data/tmp/" + nameFile + "_" + indexPartition
-      writeToASCIIFile(Block(filteredRecords), pathToPartition)
+      writeToFile(Block(filteredRecords), pathToPartition, input_data_type)
 
       indexPartition = indexPartition + 1
       Partition(ip, pathToPartition)
