@@ -43,8 +43,6 @@ fi
 [[ "$outputdir" == "" ]] && echo "Error: No output path provided" && exit 1
 
 
-echo "all dir = ${inputdirs[*]}"
-
 for dir in ${inputdirs[*]}; do
     if [ ! -d $dir ] ; then
       echo "Error: Directory not found : $dir" && exit 1

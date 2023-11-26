@@ -77,7 +77,7 @@ def sortFiles(folderPath: String, partitionPlan: PartitionPlan, input_data_type:
     
     // Sort the block and partition it based on the given partition plan
     val sortedBlock = block.sorted
-    Block.partition(sortedBlock, partitionPlan, fileName)
+    Block.partition(sortedBlock, partitionPlan, fileName, input_data_type)
   }.toList
 
   // Ensure that partitionSortedFiles is not empty
