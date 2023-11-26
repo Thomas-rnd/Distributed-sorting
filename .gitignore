@@ -34,6 +34,8 @@ sortnet/project/plugins/project/
 sortnet/.history
 sortnet/.cache
 sortnet/.lib/
+data_scripts/ip_list.txt
+*_TEMPORARY.scala
 
 ### SBT Patch ###
 sortnet/.bsp/
