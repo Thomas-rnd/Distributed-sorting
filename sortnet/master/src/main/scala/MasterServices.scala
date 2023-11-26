@@ -224,9 +224,6 @@ object MasterServices extends Logging{
    */
   def findPivotKeys(sortedSampledKeys: List[Key], numberOfWorkers: Int): List[Key] = {
     // Ensure there are enough keys for the specified number of workers
-    println(sortedSampledKeys.size)
-    println(sortedSampledKeys)
-    println(sortedSampledKeys.size)
     assert(sortedSampledKeys.size >= numberOfWorkers, "Not enough keys for the specified number of workers")
 
     // Calculate the pivot index coefficient
