@@ -12,11 +12,10 @@ else
 fi
 
 filedir=$(dirname "$(readlink -f "$0")")
-homedir=$(dirname "filedir")
+homedir=$(dirname "$filedir")
 
 
-cd $filedir
-cd ..
+cd $homedir
 
 export SBT_OPTS="-Dlog4j.configurationFile=${filedir}/../conf/log4j2.xml"
 sbt "master/runMain com.cs434.sortnet.master.Master ${num_slaves}"
