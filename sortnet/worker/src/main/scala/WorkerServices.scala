@@ -70,7 +70,7 @@ def sortFiles(folderPath: String, partitionPlan: PartitionPlan, input_data_type:
   val files = folder.listFiles().filter(_.isFile)
   val partitionSortedFiles = files.flatMap { file =>
     // Extract file name and path information
-    val fileName = file.getName
+    val fileName = file.getName + "_" + folder.getName
     val path = file.getAbsolutePath
     
     val block = Block.readFromFile(path, input_data_type)

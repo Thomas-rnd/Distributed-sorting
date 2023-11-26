@@ -149,9 +149,9 @@ object Block extends Serializable {
    * @param block The Block to write.
    * @param filePath The path to the binary file.
    */
-  def writeToByteFile(block: Block, filePath: String, append: Boolean = false): Unit = {
+  def writeToByteFile(block: Block, filePath: String): Unit = {
     val file = new File(filePath)
-    val dataOutputStream = new DataOutputStream(new FileOutputStream(file, append))
+    val dataOutputStream = new DataOutputStream(new FileOutputStream(file))
 
     try {
       val byteArray = block.toByteArray
