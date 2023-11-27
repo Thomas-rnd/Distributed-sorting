@@ -129,6 +129,7 @@ def sortFiles(folderPath: String, partitionPlan: PartitionPlan, input_data_type:
         } catch {
             case e: InterruptedException =>
                 logger.error(s"Thread join interrupted: ${e.getMessage}", e)
+                throw e
         }
     }
   }
@@ -162,6 +163,7 @@ def sortFiles(folderPath: String, partitionPlan: PartitionPlan, input_data_type:
     } catch {
       case e: Exception =>
         logger.error(s"${e.getMessage}", e)
+        throw e
     }
   }
 
@@ -219,8 +221,9 @@ def sortFiles(folderPath: String, partitionPlan: PartitionPlan, input_data_type:
                 val out = new ObjectOutputStream(socket.getOutputStream)
                 out.writeObject(saveBlockRequest)
               } catch {
-                case e: Exception =>
+                case e: Throwable =>
                 logger.error(s"${e.getMessage}", e)
+                throw e
               } finally {
                 socket.close()
               }
