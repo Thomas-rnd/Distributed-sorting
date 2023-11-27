@@ -33,7 +33,7 @@ object Master extends Logging{
 //======================================================      
       logger.info("Stage start : Register")
       val serverSocket = new ServerSocket(port)
-      logger.info(s"Master listening on $port")
+      logger.info(s"Master listening on $port , waiting for $numWorkers workers")
       val threadPool = Executors.newCachedThreadPool()
 
       while (workerMetadataMap.size < numWorkers) {
@@ -43,10 +43,7 @@ object Master extends Logging{
         val receivedObject = in.readObject
         if (receivedObject.isInstanceOf[RegisterRequest]) {
           val registerRequest = receivedObject.asInstanceOf[RegisterRequest]
-          
           MasterServices.handleRegisterRequest(clientSocket, registerRequest, threadPool, workerMetadataMap,numWorkers)
-          
-          
         } else {
           clientSocket.close()
         }
@@ -66,7 +63,13 @@ object Master extends Logging{
 //======================================================
       logger.info("Stage start : Partitioning")
       // compute partitionPlan
-      val partitionPlan = MasterServices.computePartitionPlan(sampleKeys, numWorkers)
+      var partitionPlan = new PartitionPlan(null)
+      try {
+        partitionPlan = MasterServices.computePartitionPlan(sampleKeys, numWorkers)
+      } catch {
+        case e: Throwable =>
+          throw new MasterTaskError(s"Master failed to compute partitionPlan : ${e.getMessage}")
+      }
       // broadcast partitionPlan
       MasterServices.sendRequests(workerMetadataMap, MessageType.SavePartitionPlan, partitionPlan = Some(partitionPlan))
       logger.info("Stage end : Partitioning")
@@ -92,12 +95,51 @@ object Master extends Logging{
 //======================================================
       logger.info("Stage start : Terminate")
       // broadcast terminateRequest
-      MasterServices.sendRequests(workerMetadataMap, MessageType.Terminate)
+      MasterServices.sendRequests(workerMetadataMap, MessageType.Terminate, success=Some(true), reason=Some("All workers are done!"))
       logger.info("Stage end : Terminate")
 
     } catch {
-      case e @ (_: IOException | _: ClassNotFoundException) =>
+      case e: IOException =>
         logger.error(s"${e.getMessage}", e)
+
+      case e: WorkerFailed =>
+        logger.error(s"${e.getMessage}")
+        workerMetadataMap.remove(e.getWorkerIP)
+        MasterServices.sendRequests(workerMetadataMap, MessageType.Terminate, success=Some(false), reason=Some(s"Worker Failed:${e.getMessage}"))
+      
+      case e: WorkerError =>
+        logger.error(s"Worker Error: ${e.getMessage}")
+        logger.error(s"Remove worker ${e.getWorkerIP} from workerMetadataMap")
+        workerMetadataMap.remove(e.getWorkerIP)
+        MasterServices.sendRequests(workerMetadataMap, MessageType.Terminate, success=Some(false), reason=Some(s"Worker Error: workerIP close connection"))
+
+      case e: MasterTaskError =>
+        logger.error(s"MasterTaskError Error : ${e.getMessage}")
+        MasterServices.sendRequests(workerMetadataMap, MessageType.Terminate, success=Some(false), reason=Some(s"MasterTaskError Error: ${e.getMessage}"))
+
+      case e: ClassNotFoundException =>
+        logger.error(s"ClassNotFoundException : ${e.getMessage}")
+        MasterServices.sendRequests(workerMetadataMap, MessageType.Terminate, success=Some(false), reason=Some(s"Master Error: ClassNotFoundException"))
+
+      case e: RuntimeException =>
+        logger.error(s"RuntimeException Error : ${e.getMessage}")
+        MasterServices.sendRequests(workerMetadataMap, MessageType.Terminate, success=Some(false), reason=Some(s"Master Error: RuntimeException"))
+      
+      case e: Throwable  =>
+        logger.error(s"Throwable : ${e.getMessage}")
+        MasterServices.sendRequests(workerMetadataMap, MessageType.Terminate, success=Some(false), reason=Some(s"Master Error: Throwable ${e.getMessage}"))
+
+    }
+
+    for ((workerId, workerMetadata) <- workerMetadataMap) {
+      try {
+        workerMetadata.socket.close()
+        logger.debug(s"Closed socket for worker $workerId")
+      } catch {
+        case e: IOException =>
+          logger.error(s"Error closing socket for worker $workerId: ${e.getMessage}", e)
+          // Handle the exception if needed
+      }
     }
   }
 }

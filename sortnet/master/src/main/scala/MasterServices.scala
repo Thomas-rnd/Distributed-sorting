@@ -35,7 +35,17 @@ object MasterServices extends Logging{
         out.writeObject(reply)
       } catch {
         case e: IOException =>
-          logger.error(s"${e.getMessage}", e)
+          logger.error(s"IOException Error when registration : ${e.getMessage}", e)
+          workerMetadataMap.remove(clientIP)
+      }
+    } else {
+      val reply = new RegisterReply(false)
+      try {
+        val out = new ObjectOutputStream(clientSocket.getOutputStream)
+        out.writeObject(reply)
+      } catch {
+        case e: IOException =>
+          logger.error(s"IOException Error when deny registration : ${e.getMessage}", e)
       }
     }
   }
@@ -44,7 +54,9 @@ object MasterServices extends Logging{
     workerMetadataMap: Map[String, WorkerMetadata],
     messageType: MessageType.Value,
     partitionPlan: Option[PartitionPlan] = None,
-    sampleKeys: Option[Map[String, List[Key]]] = None
+    sampleKeys: Option[Map[String, List[Key]]] = None,
+    success: Option[Boolean] = None,
+    reason: Option[String] = None
   ): Unit = {
     val threads = ListBuffer[Thread]()
 
@@ -69,10 +81,10 @@ object MasterServices extends Logging{
               sendRequestThread(workerThreadMetadata, MessageType.Merge)
 
             case MessageType.Terminate =>
-              sendRequestThread(workerThreadMetadata, MessageType.Terminate)
+              sendRequestThread(workerThreadMetadata, MessageType.Terminate, success = success , reason = reason)
 
             case _ =>
-              logger.info(s"Unsupported message type: $messageType")
+              throw new RuntimeException(s"Unsupported message type: $messageType")
           }
         }
       })
@@ -86,10 +98,27 @@ object MasterServices extends Logging{
     for (thread <- threads) {
       try {
         thread.join()
-        logger.info(s"Thread joined: ${thread.getId}")
+        logger.debug(s"Thread joined: ${thread.getId}")
       } catch {
+        case e: WorkerFailed =>
+          logger.error(s"Worker Failed in sending thread ${thread.getId}: ${e.getMessage}")
+          throw e
+        
+        case e: WorkerError =>
+          logger.error(s"Worker Error in sending thread ${thread.getId}: ${e.getMessage}")
+          throw e
+
         case e: InterruptedException =>
           logger.error(s"Thread join interrupted: ${e.getMessage}")
+          throw e
+
+        case e: RuntimeException =>
+          logger.error(s"RuntimeException Error in sending thread ${thread.getId}: ${e.getMessage}")
+          throw e
+
+        case e: Throwable  =>
+          logger.error(s"Error in sending thread ${thread.getId}: ${e.getMessage}")
+          throw e
       }
     }
 
@@ -98,13 +127,13 @@ object MasterServices extends Logging{
       case MessageType.SampleKey =>
         sampleKeys match {
           case Some(sampleKeysFound) =>
-            logger.info("All samples received:")
+            logger.info("All samples received")
             for ((workerIP, keys) <- sampleKeysFound) {
-              logger.info(s"Worker IP: $workerIP")
-              logger.info(s"Sample Keys: $keys")
+              logger.debug(s"Worker IP: $workerIP")
+              logger.debug(s"Sample Keys: $keys")
             }
           case None =>
-            logger.info("sampleKeys not provided for SampleKey")
+            throw new RuntimeException("sampleKeys not provided for SampleKey")
         }
 
       case _ => // Handle other message types
@@ -115,7 +144,9 @@ object MasterServices extends Logging{
     workerMetadata: WorkerMetadata,
     messageType: MessageType.Value,
     partitionPlan: Option[PartitionPlan] = None,
-    sampleKeys: Option[Map[String, List[Key]]] = None
+    sampleKeys: Option[Map[String, List[Key]]] = None,
+    success: Option[Boolean] = None,
+    reason: Option[String] = None
   ): Unit = {
     try {
       val socket = workerMetadata.socket
@@ -133,13 +164,17 @@ object MasterServices extends Logging{
               val receivedObject = in.readObject
               if (receivedObject.isInstanceOf[SampleKeyReply]) {
                 val reply = receivedObject.asInstanceOf[SampleKeyReply]
-                val workerIP = workerMetadata.ip
-                val keys = reply.sampledKeys.toList
-                //logger.info(s"Keys from worker $workerIP: $keys")
-                sampleKeysFound.put(workerIP, keys)
+                if (reply.success) {
+                  logger.debug(s"Worker ${workerMetadata.ip} succesfully merge")
+                  val keys = reply.sampledKeys.toList
+                  logger.debug(s"Keys from worker ${workerMetadata.ip}: $keys")
+                  sampleKeysFound.put(workerMetadata.ip, keys)
+                } else {
+                  throw new WorkerFailed(workerMetadata.ip, s"Worker ${workerMetadata.ip} failed to sample Keys")
+                }
               }
             case None =>
-              logger.info("sampleKeys not provided for SampleKey")
+              throw new RuntimeException("sampleKeys not provided for SampleKey")
           }
 
         case MessageType.SavePartitionPlan =>
@@ -153,9 +188,14 @@ object MasterServices extends Logging{
               val receivedObject = in.readObject
               if (receivedObject.isInstanceOf[SavePartitionPlanReply]) {
                 val reply = receivedObject.asInstanceOf[SavePartitionPlanReply]
+                if (reply.success) {
+                  logger.debug(s"Worker ${workerMetadata.ip} succesfully save partitionPlan")
+                } else {
+                  throw new WorkerFailed(workerMetadata.ip, s"Worker ${workerMetadata.ip} failed to save partitionPlan")
+                }
               }
             case None =>
-              logger.info("partitionPlan not provided for SavePartitionPlan")
+              throw new RuntimeException("partitionPlan not provided for SavePartitionPlan")
           }
 
         case MessageType.Sort =>
@@ -168,6 +208,11 @@ object MasterServices extends Logging{
           val receivedObject = in.readObject
           if (receivedObject.isInstanceOf[SortReply]) {
             val reply = receivedObject.asInstanceOf[SortReply]
+            if (reply.success) {
+              logger.debug(s"Worker ${workerMetadata.ip} succesfully sort")
+            } else {
+              throw new WorkerFailed(workerMetadata.ip, s"Worker ${workerMetadata.ip} failed to sort")
+            }
           }
 
         case MessageType.Shuffle =>
@@ -180,6 +225,12 @@ object MasterServices extends Logging{
           val receivedObject = in.readObject
           if (receivedObject.isInstanceOf[ShuffleReply]) {
             val reply = receivedObject.asInstanceOf[ShuffleReply]
+            val workerIP = workerMetadata.ip
+            if (reply.success) {
+              logger.debug(s"Worker ${workerMetadata.ip} succesfully shuffle")
+            } else {
+              throw new WorkerFailed(workerMetadata.ip, s"Worker ${workerMetadata.ip} failed to shuffle")
+            }
           }
 
         case MessageType.Merge =>
@@ -192,26 +243,61 @@ object MasterServices extends Logging{
           val receivedObject = in.readObject
           if (receivedObject.isInstanceOf[MergeReply]) {
             val reply = receivedObject.asInstanceOf[MergeReply]
+            val workerIP = workerMetadata.ip
+            if (reply.success) {
+              logger.debug(s"Worker ${workerMetadata.ip} succesfully merge")
+            } else {
+              throw new WorkerFailed(workerMetadata.ip, s"Worker ${workerMetadata.ip} failed to merge")
+            }
           }
 
         case MessageType.Terminate =>
-          // Send the TerminateRequest
-          val request = new TerminateRequest
-          out.writeObject(request)
+          success match {
+            case Some(suc) =>
+              reason match {
+                case Some(reas) =>
+                  // Send the TerminateRequest
+                  val request = new TerminateRequest(suc,reas)
+                  out.writeObject(request)
 
-          // Wait for the TerminateReply
-          val in = new ObjectInputStream(socket.getInputStream)
-          val receivedObject = in.readObject
-          if (receivedObject.isInstanceOf[TerminateReply]) {
-            val reply = receivedObject.asInstanceOf[TerminateReply]
+                  // Wait for the TerminateReply
+                  val in = new ObjectInputStream(socket.getInputStream)
+                  val receivedObject = in.readObject
+                  if (receivedObject.isInstanceOf[TerminateReply]) {
+                    val reply = receivedObject.asInstanceOf[TerminateReply]
+                    val workerIP = workerMetadata.ip
+                    if (reply.success) {
+                      logger.debug(s"Worker ${workerMetadata.ip} succesfully terminate")
+                    } else {
+                      logger.error(s"Worker ${workerMetadata.ip} failed to terminate")
+                    }
+                  }
+                case None =>
+                  throw new RuntimeException("Reason of Terminate not provided for TerminateRequest")
+              }
+            case None =>
+                throw new RuntimeException("success of Terminate not provided for TerminateRequest")
           }
+          
 
         case _ =>
-          logger.info(s"Unsupported message type: $messageType")
+          throw new RuntimeException(s"Unsupported message type: $messageType")
       }
     } catch {
-      case e @ (_: IOException | _: ClassNotFoundException) =>
-        logger.error(s"${e.getMessage}", e)
+      case e: WorkerFailed =>
+        throw e
+      case e: IOException =>
+        val workerIP = workerMetadata.ip
+        val errorMessage = s"Error in sending request to worker ${workerMetadata.ip}: ${e.getMessage}"
+        val workerError = new WorkerError(workerIP, errorMessage, e)
+        logger.error(errorMessage, e)
+        throw workerError
+      case e: ClassNotFoundException =>
+        throw e
+      case e: RuntimeException =>
+        throw e
+      case e: Throwable =>
+        throw e
     }
   }
 
@@ -307,3 +393,5 @@ object MasterServices extends Logging{
     PartitionPlan(partitions)
   }
 }
+
+
