@@ -296,7 +296,7 @@ object MasterServices extends Logging{
       case e: WorkerFailed =>
         throw e
       case e: IOException => // or java.net.SocketException or java.io.EOFException
-        val workerIP = workerMetadata.ip
+        val workerIP = Option(workerMetadata).map(_.ip).getOrElse("Unknown IP")
         val errorMessage = s"Error in sending request to worker ${workerMetadata.ip}: ${e.getClass.getSimpleName}"
         val workerError = new WorkerError(workerIP, errorMessage)
         throw workerError

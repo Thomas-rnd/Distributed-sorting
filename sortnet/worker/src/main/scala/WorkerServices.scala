@@ -177,16 +177,16 @@ object  WorkerServices extends Logging{
 
   def sendSaveBlockRequest(partitionPlan: PartitionPlan, partitionsToSendList: List[Partition], input_data_type: String): Unit = {
     val myIP = InetAddress.getLocalHost.getHostAddress
-    logger.info(s"My IP is: $myIP")
+    logger.debug(s"My IP is: $myIP")
     // Create a mutable list to store threads and results
     var threads = ListBuffer[Thread]()
     val threadResults = ListBuffer[Option[Boolean]]()
 
     logger.debug("sendSaveBlockRequest(partitionPlan,partitionsToSendList)")
-    logger.info("partitionPlan:")
-    logger.info(partitionPlan)
-    logger.info("partitionsToSendList:")
-    logger.info(partitionsToSendList)
+    logger.debug("partitionPlan:")
+    logger.debug(partitionPlan)
+    logger.debug("partitionsToSendList:")
+    logger.debug(partitionsToSendList)
 
     // Iterate over partitionPlan
     partitionPlan.partitions.foreach {

@@ -216,7 +216,6 @@ object Worker extends Logging{
             case terminateRequest: TerminateRequest =>
               val successMessage = if (terminateRequest.success) "Sorting is done" else s"Sorting failed ${terminateRequest.reason}"
               logger.info(s"TerminateRequest : $successMessage")
-              logger.info("Terminating...")
               
               val reply: TerminateReply = new TerminateReply(true)
               val out2: ObjectOutputStream = new ObjectOutputStream(socket.getOutputStream)
