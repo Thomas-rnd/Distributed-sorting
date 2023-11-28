@@ -6,6 +6,8 @@ import java.net.{ServerSocket, Socket}
 import scala.collection.mutable.{Map, HashMap, ListBuffer}
 import scala.concurrent.{Future, Promise}
 import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.Await
+import scala.concurrent.duration._
 
 import com.cs434.sortnet.network._
 import com.cs434.sortnet.core._
@@ -23,7 +25,7 @@ object MasterServices extends Logging{
   ): Unit = {
     if (workerMetadataMap.size < numWorkers) {
       val clientIP = clientSocket.getInetAddress.getHostAddress
-      logger.info(s"IP enregistrée : $clientIP")
+      logger.info(s"IP registered : $clientIP")
 
       // Create a WorkerMetadata with clientIP and the associated socket
       val workerMetadata = WorkerMetadata(clientIP, 0, clientSocket, None)
@@ -71,18 +73,22 @@ object MasterServices extends Logging{
             val workerThreadMetadata = workerMetadata
             messageType match {
               case MessageType.SampleKey =>
+                logger.info(s"Send SampleKey request to ${workerThreadMetadata.ip}")
                 sendRequestThread(workerThreadMetadata, MessageType.SampleKey, sampleKeys = sampleKeys)
                 promise.success(true)
 
               case MessageType.SavePartitionPlan =>
+                logger.info(s"Send SavePartitionPlan request to ${workerThreadMetadata.ip}")
                 sendRequestThread(workerThreadMetadata, MessageType.SavePartitionPlan, partitionPlan = partitionPlan)
                 promise.success(true)
 
               case MessageType.Sort =>
+                logger.info(s"Send sort request to ${workerThreadMetadata.ip}")
                 sendRequestThread(workerThreadMetadata, MessageType.Sort)
                 promise.success(true)
 
               case MessageType.Shuffle =>
+                logger.info(s"Send shuffle request to ${workerThreadMetadata.ip}")
                 sendRequestThread(workerThreadMetadata, MessageType.Shuffle)
                 promise.success(true)
 
@@ -106,10 +112,12 @@ object MasterServices extends Logging{
       })
 
       thread.start()
-      thread.join() // Ensure the thread has completed before moving on
 
       future
     }
+
+    // Wait for all futures to complete before moving on
+    Await.result(Future.sequence(futures), Duration.Inf)
 
     val aggregatedFuture = Future.sequence(futures)
 
@@ -165,7 +173,7 @@ object MasterServices extends Logging{
               if (receivedObject.isInstanceOf[SampleKeyReply]) {
                 val reply = receivedObject.asInstanceOf[SampleKeyReply]
                 if (reply.success) {
-                  logger.debug(s"Worker ${workerMetadata.ip} succesfully merge")
+                  logger.debug(s"Worker ${workerMetadata.ip} succesfully sample Keys")
                   val keys = reply.sampledKeys.toList
                   logger.debug(s"Keys from worker ${workerMetadata.ip}: $keys")
                   sampleKeysFound.put(workerMetadata.ip, keys)
@@ -191,7 +199,7 @@ object MasterServices extends Logging{
                 if (reply.success) {
                   logger.debug(s"Worker ${workerMetadata.ip} succesfully save partitionPlan")
                 } else {
-                  throw new WorkerFailed(workerMetadata.ip, s"Worker ${workerMetadata.ip} failed to save partitionPlan")
+                  throw new WorkerFailed(workerMetadata.ip, s"Worker failure : Worker ${workerMetadata.ip} failed to save partitionPlan")
                 }
               }
             case None =>
@@ -211,7 +219,7 @@ object MasterServices extends Logging{
             if (reply.success) {
               logger.debug(s"Worker ${workerMetadata.ip} succesfully sort")
             } else {
-              throw new WorkerFailed(workerMetadata.ip, s"Worker ${workerMetadata.ip} failed to sort")
+              throw new WorkerFailed(workerMetadata.ip, s"Worker failure : Worker ${workerMetadata.ip} failed to sort")
             }
           }
 
@@ -229,7 +237,7 @@ object MasterServices extends Logging{
             if (reply.success) {
               logger.debug(s"Worker ${workerMetadata.ip} succesfully shuffle")
             } else {
-              throw new WorkerFailed(workerMetadata.ip, s"Worker ${workerMetadata.ip} failed to shuffle")
+              throw new WorkerFailed(workerMetadata.ip, s"Worker failure : Worker ${workerMetadata.ip} failed to shuffle")
             }
           }
 
@@ -247,7 +255,7 @@ object MasterServices extends Logging{
             if (reply.success) {
               logger.debug(s"Worker ${workerMetadata.ip} succesfully merge")
             } else {
-              throw new WorkerFailed(workerMetadata.ip, s"Worker ${workerMetadata.ip} failed to merge")
+              throw new WorkerFailed(workerMetadata.ip, s"Worker failure : Worker ${workerMetadata.ip} failed to merge")
             }
           }
 
@@ -262,6 +270,7 @@ object MasterServices extends Logging{
 
                   // Wait for the TerminateReply
                   val in = new ObjectInputStream(socket.getInputStream)
+                  
                   val receivedObject = in.readObject
                   if (receivedObject.isInstanceOf[TerminateReply]) {
                     val reply = receivedObject.asInstanceOf[TerminateReply]
@@ -269,7 +278,7 @@ object MasterServices extends Logging{
                     if (reply.success) {
                       logger.debug(s"Worker ${workerMetadata.ip} succesfully terminate")
                     } else {
-                      logger.error(s"Worker ${workerMetadata.ip} failed to terminate")
+                      logger.error(s"Worker failure : Worker ${workerMetadata.ip} failed to terminate")
                     }
                   }
                 case None =>
@@ -286,15 +295,16 @@ object MasterServices extends Logging{
     } catch {
       case e: WorkerFailed =>
         throw e
-      case e: IOException =>
+      case e: IOException => // or java.net.SocketException or java.io.EOFException
         val workerIP = workerMetadata.ip
-        val errorMessage = s"Error in sending request to worker ${workerMetadata.ip}: ${e.getMessage}"
-        val workerError = new WorkerError(workerIP, errorMessage, e)
-        logger.error(errorMessage, e)
+        val errorMessage = s"Error in sending request to worker ${workerMetadata.ip}: ${e.getClass.getSimpleName}"
+        val workerError = new WorkerError(workerIP, errorMessage)
         throw workerError
       case e: ClassNotFoundException =>
         throw e
       case e: RuntimeException =>
+        throw e
+      case e: Exception =>
         throw e
       case e: Throwable =>
         throw e

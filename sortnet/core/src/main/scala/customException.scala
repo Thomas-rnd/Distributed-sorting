@@ -1,7 +1,7 @@
 package com.cs434.sortnet.core
 
 
-class WorkerError(workerIP: String, message: String, cause: Throwable) extends Exception(message, cause) {
+class WorkerError(workerIP: String, message: String) extends Exception(message) {
   def getWorkerIP: String = workerIP
 }
 

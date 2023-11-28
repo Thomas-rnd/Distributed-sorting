@@ -38,7 +38,7 @@ object Master extends Logging{
 
       while (workerMetadataMap.size < numWorkers) {
         val clientSocket = serverSocket.accept()
-        logger.info("Nouvelle connexion entrante")
+        logger.info("New incoming connexion")
         val in = new ObjectInputStream(clientSocket.getInputStream)
         val receivedObject = in.readObject
         if (receivedObject.isInstanceOf[RegisterRequest]) {
@@ -104,13 +104,15 @@ object Master extends Logging{
 
       case e: WorkerFailed =>
         logger.error(s"${e.getMessage}")
-        workerMetadataMap.remove(e.getWorkerIP)
+        logger.info("Send Terminate request with failed status to workers")
+        //workerMetadataMap.remove(e.getWorkerIP)
         MasterServices.sendRequests(workerMetadataMap, MessageType.Terminate, success=Some(false), reason=Some(s"Worker Failed:${e.getMessage}"))
       
       case e: WorkerError =>
         logger.error(s"Worker Error: ${e.getMessage}")
-        logger.error(s"Remove worker ${e.getWorkerIP} from workerMetadataMap")
+        logger.info(s"Remove worker ${e.getWorkerIP} from workerMetadataMap")
         workerMetadataMap.remove(e.getWorkerIP)
+        logger.info("Send Terminate request with failed status to workers")
         MasterServices.sendRequests(workerMetadataMap, MessageType.Terminate, success=Some(false), reason=Some(s"Worker Error: workerIP close connection"))
 
       case e: MasterTaskError =>
@@ -137,7 +139,7 @@ object Master extends Logging{
         logger.debug(s"Closed socket for worker $workerId")
       } catch {
         case e: IOException =>
-          logger.error(s"Error closing socket for worker $workerId: ${e.getMessage}", e)
+          logger.error(s"Error closing socket for worker $workerId: ${e.getMessage}")
           // Handle the exception if needed
       }
     }
