@@ -4,6 +4,7 @@ import java.io._
 import java.net._
 import java.util.{ ArrayList }
 import scala.jdk.CollectionConverters
+import java.lang.Thread.UncaughtExceptionHandler
 
 import com.cs434.sortnet.network._
 import com.cs434.sortnet.core._
@@ -31,8 +32,6 @@ object Worker extends Logging{
     }
 
     // Assuming the arguments are provided in the correct order as per the example usage
-
-    
     masterIP = args(0).split(":")(0)
     masterPort = args(0).split(":")(1).toInt
     
@@ -50,6 +49,7 @@ object Worker extends Logging{
     logger.info(s"Output Folder: $outputFolder")
 
     threadListen = new Thread()
+    @volatile var threadListenResult: Option[Boolean] = None
 
     try {
       val socket: Socket = new Socket(masterIP, masterPort)
@@ -70,15 +70,7 @@ object Worker extends Logging{
                 sys.exit(0)
               }
               logger.info(s"Registration done!")
-              logger.info("Preparing for shuffling phase")
-              threadListen = new Thread(new Runnable {
-                def run(): Unit = {
-                  WorkerServices.handleSaveBlockRequest(numWorkers, input_data_type)
-                }
-              })
-              threadListen.start()
-              logger.info("Listen Thread Start")
-              logger.info("Preparation Done")
+              
 
             case sampleKeyRequest: SampleKeyRequest =>
               logger.info("SampleKeyRequest received!")
@@ -117,10 +109,21 @@ object Worker extends Logging{
                   logger.error(s"Worker failed to save partitionPlan : ${e.getMessage}")
               }
 
+              if (success) {
+                logger.info("Preparing for shuffling phase")
+                threadListen = new Thread(new Runnable {
+                  def run(): Unit = {
+                    WorkerServices.handleSaveBlockRequest(numWorkers, input_data_type)
+                    threadListenResult = Some(true)
+                  }
+                })
+                threadListen.start()
+                logger.info("Listen Thread Start")
+                logger.info("Preparation Done")
+              }
+
               out2.writeObject(new SavePartitionPlanReply(success))
               logger.info("SavePartitionPlanReply send!")
-
-              
 
             case sortRequest: SortRequest =>
               logger.info("SortRequest received!")
@@ -144,18 +147,45 @@ object Worker extends Logging{
               logger.info("Shuffling...")
               val out2: ObjectOutputStream = new ObjectOutputStream(socket.getOutputStream)
               var success = false
+              @volatile var threadSendResult: Option[Boolean] = None
               
               try {
                 val threadSend = new Thread(new Runnable {
                   def run(): Unit = {
                     WorkerServices.sendSaveBlockRequest(partitionPlan, partitionsList, input_data_type) //partitions should be a List[Partition]
+                    threadSendResult = Some(true)
                   }
                 })
                 threadSend.start()
                 logger.info("Sending Thread Start")
 
                 threadListen.join()
+                // Check if an exception occurred in the child thread
+                threadListenResult match {
+                  case Some(result) =>
+                    if (!result) {
+                      logger.error("Error in threadListen")
+                      throw new WorkerTaskError(s"Worker failed to shuffle: threadListen failed")
+                    } else {
+                      logger.debug("threadListen successfull")
+                    }
+                  case None =>
+                    logger.error("Error in threadListen")
+                    throw new WorkerTaskError(s"Worker failed to shuffle: threadListen failed")
+                }
                 threadSend.join()
+                threadSendResult match {
+                  case Some(result) =>
+                    if (!result) {
+                      logger.error("Error in threadSend")
+                      throw new WorkerTaskError(s"Worker failed to shuffle: threadSend failed")
+                    } else {
+                      logger.debug("threadSend successfull")
+                    }
+                  case None =>
+                    logger.error("Error in threadSend")
+                    throw new WorkerTaskError(s"Worker failed to shuffle: threadSend failed")
+                }
                 success = true
               } catch {
                 case e: Throwable =>

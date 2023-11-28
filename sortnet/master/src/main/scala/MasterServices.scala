@@ -4,6 +4,8 @@ import java.io._
 import java.util.concurrent.{ExecutorService, Executors}
 import java.net.{ServerSocket, Socket}
 import scala.collection.mutable.{Map, HashMap, ListBuffer}
+import scala.concurrent.{Future, Promise}
+import scala.concurrent.ExecutionContext.Implicits.global
 
 import com.cs434.sortnet.network._
 import com.cs434.sortnet.core._
@@ -50,95 +52,93 @@ object MasterServices extends Logging{
     }
   }
 
-  def sendRequests(
-    workerMetadataMap: Map[String, WorkerMetadata],
-    messageType: MessageType.Value,
-    partitionPlan: Option[PartitionPlan] = None,
-    sampleKeys: Option[Map[String, List[Key]]] = None,
-    success: Option[Boolean] = None,
-    reason: Option[String] = None
-  ): Unit = {
-    val threads = ListBuffer[Thread]()
 
-    for (workerMetadata <- workerMetadataMap.values) {
+  def sendRequests(
+      workerMetadataMap: Map[String, WorkerMetadata],
+      messageType: MessageType.Value,
+      partitionPlan: Option[PartitionPlan] = None,
+      sampleKeys: Option[Map[String, List[Key]]] = None,
+      success: Option[Boolean] = None,
+      reason: Option[String] = None
+  ): Unit = {
+    val futures = workerMetadataMap.values.map { workerMetadata =>
+      val promise = Promise[Boolean]()
+      val future = promise.future
+
       val thread = new Thread(new Runnable {
         def run(): Unit = {
-          val workerThreadMetadata = workerMetadata
-          messageType match {
-            case MessageType.SampleKey =>
-              sendRequestThread(workerThreadMetadata, MessageType.SampleKey, sampleKeys = sampleKeys)
+          try {
+            val workerThreadMetadata = workerMetadata
+            messageType match {
+              case MessageType.SampleKey =>
+                sendRequestThread(workerThreadMetadata, MessageType.SampleKey, sampleKeys = sampleKeys)
+                promise.success(true)
 
-            case MessageType.SavePartitionPlan =>
-              sendRequestThread(workerThreadMetadata, MessageType.SavePartitionPlan, partitionPlan = partitionPlan)
+              case MessageType.SavePartitionPlan =>
+                sendRequestThread(workerThreadMetadata, MessageType.SavePartitionPlan, partitionPlan = partitionPlan)
+                promise.success(true)
 
-            case MessageType.Sort =>
-              sendRequestThread(workerThreadMetadata, MessageType.Sort)
+              case MessageType.Sort =>
+                sendRequestThread(workerThreadMetadata, MessageType.Sort)
+                promise.success(true)
 
-            case MessageType.Shuffle =>
-              sendRequestThread(workerThreadMetadata, MessageType.Shuffle)
+              case MessageType.Shuffle =>
+                sendRequestThread(workerThreadMetadata, MessageType.Shuffle)
+                promise.success(true)
 
-            case MessageType.Merge =>
-              sendRequestThread(workerThreadMetadata, MessageType.Merge)
+              case MessageType.Merge =>
+                sendRequestThread(workerThreadMetadata, MessageType.Merge)
+                promise.success(true)
 
-            case MessageType.Terminate =>
-              sendRequestThread(workerThreadMetadata, MessageType.Terminate, success = success , reason = reason)
+              case MessageType.Terminate =>
+                sendRequestThread(workerThreadMetadata, MessageType.Terminate, success = success , reason = reason)
+                promise.success(true)
 
-            case _ =>
-              throw new RuntimeException(s"Unsupported message type: $messageType")
+              case _ =>
+                throw new RuntimeException(s"Unsupported message type: $messageType")
+            } 
+          } catch {
+            case e: Throwable =>
+              logger.error(s"${e.getMessage}")
+              promise.failure(e)
           }
         }
       })
-      threads += thread
+
       thread.start()
+      thread.join() // Ensure the thread has completed before moving on
+
+      future
     }
 
-    logger.info(s"Started ${threads.size} threads for ${messageType.toString} Requests.")
+    val aggregatedFuture = Future.sequence(futures)
 
-    // Wait for all the threads to finish
-    for (thread <- threads) {
-      try {
-        thread.join()
-        logger.debug(s"Thread joined: ${thread.getId}")
-      } catch {
-        case e: WorkerFailed =>
-          logger.error(s"Worker Failed in sending thread ${thread.getId}: ${e.getMessage}")
-          throw e
-        
-        case e: WorkerError =>
-          logger.error(s"Worker Error in sending thread ${thread.getId}: ${e.getMessage}")
-          throw e
+    aggregatedFuture.onComplete {
+      case scala.util.Success(results) =>
+        logger.debug("All threads completed successfully")
 
-        case e: InterruptedException =>
-          logger.error(s"Thread join interrupted: ${e.getMessage}")
-          throw e
-
-        case e: RuntimeException =>
-          logger.error(s"RuntimeException Error in sending thread ${thread.getId}: ${e.getMessage}")
-          throw e
-
-        case e: Throwable  =>
-          logger.error(s"Error in sending thread ${thread.getId}: ${e.getMessage}")
-          throw e
-      }
-    }
-
-    // Log relevant information based on the message type
-    messageType match {
-      case MessageType.SampleKey =>
-        sampleKeys match {
-          case Some(sampleKeysFound) =>
-            logger.info("All samples received")
-            for ((workerIP, keys) <- sampleKeysFound) {
-              logger.debug(s"Worker IP: $workerIP")
-              logger.debug(s"Sample Keys: $keys")
+        messageType match {
+          case MessageType.SampleKey =>
+            sampleKeys match {
+              case Some(sampleKeysFound) =>
+                logger.info("All samples received")
+                for ((workerIP, keys) <- sampleKeysFound) {
+                  logger.debug(s"Worker IP: $workerIP")
+                  logger.debug(s"Sample Keys: $keys")
+                }
+                case None =>
+                  throw new RuntimeException("sampleKeys not provided for SampleKey")
             }
-          case None =>
-            throw new RuntimeException("sampleKeys not provided for SampleKey")
+
+          case _ => // Handle other message types
         }
 
-      case _ => // Handle other message types
+      case scala.util.Failure(exception) =>
+        logger.error(s"Error in one or more workers threads: ${exception.getMessage}")
+        throw exception
     }
   }
+
 
   def sendRequestThread(
     workerMetadata: WorkerMetadata,
