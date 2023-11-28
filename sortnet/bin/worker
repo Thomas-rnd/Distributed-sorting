@@ -72,7 +72,7 @@ for folder in "${folders[@]}"; do
     if [ ! -d "$current_path" ]; then
         #echo "Creating folder: $current_path"
         mkdir "$current_path"
-    else
+    #else
         #echo "Folder already exists: $current_path"
     fi
 done
