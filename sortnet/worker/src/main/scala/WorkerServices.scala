@@ -145,7 +145,7 @@ def sortFiles(folderPath: String, partitionPlan: PartitionPlan, input_data_type:
 
       while (nbBlockToSave != 0) {
         logger.info(s"Worker $clientIP have $nbBlockToSave block to send.")
-        val pathToFile = "/home/red/data/tmp/partition_" + clienIPClean + "_" + nbBlockToSave
+        val pathToFile = "/tmp/sortnet_TMP/data/tmp/partition_" + clienIPClean + "_" + nbBlockToSave
         Block.writeToFile(blockToSave, pathToFile, data_type)
 
         val in = new ObjectInputStream(clientSocket.getInputStream)

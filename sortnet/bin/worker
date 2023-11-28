@@ -59,7 +59,25 @@ else
   echo "Error : Unsupported OS" && exit 1
 fi
 
+#!/bin/bash
 
+# Specify the path
+tmp_path="/tmp/sortnet_TMP/data/tmp"
+
+# Check if each folder in the path exists, create if not
+IFS='/' read -ra folders <<< "$tmp_path"
+current_path=""
+for folder in "${folders[@]}"; do
+    current_path="$current_path/$folder"
+    if [ ! -d "$current_path" ]; then
+        #echo "Creating folder: $current_path"
+        mkdir "$current_path"
+    else
+        #echo "Folder already exists: $current_path"
+    fi
+done
+
+rm -rf /tmp/sortnet_TMP/data/tmp/*
 
 outputdir=$(readlink -f "$outputdir")
 
@@ -80,3 +98,5 @@ cd $homedir
 export SBT_OPTS="-Dlog4j.configurationFile=${filedir}/../conf/log4j2.xml"
 
 sbt "worker/runMain com.cs434.sortnet.worker.Worker ${ipport} ${outputdir} ${input_data_type} ${inputdirs[*]}"
+
+rm -rf /tmp/sortnet_TMP

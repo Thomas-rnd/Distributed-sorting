@@ -173,7 +173,7 @@ object Worker extends Logging{
               var success = false
 
               try {
-                WorkerServices.mergeFiles("/home/red/data/tmp",outputFolder,input_data_type) // TODO Dynalic tmp folder
+                WorkerServices.mergeFiles("/tmp/sortnet_TMP/data/tmp",outputFolder,input_data_type) // TODO Dynalic tmp folder
                 success = true
               } catch {
                 case e: Throwable =>
