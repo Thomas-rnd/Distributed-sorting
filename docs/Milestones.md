@@ -31,7 +31,7 @@
 
 - [x] Communication shuffling task
 - [x] File transfer between worker
-- [ ] Communication merging task
-- [ ] Merging method
-- [ ] Validating output result (valsort)
+- [x] Communication merging task
+- [x] Merging method
+- [x] Validating output result (valsort)
 - [ ] Testing overall solution
