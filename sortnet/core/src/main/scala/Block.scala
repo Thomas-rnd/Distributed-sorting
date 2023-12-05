@@ -227,7 +227,7 @@ object Block extends Serializable {
         (startKey <= record.key) && (record.key <= endKey)
       )
 
-      val pathToPartition = "/home/red/data/tmp/" + nameFile + "_" + indexPartition
+      val pathToPartition = "/tmp/sortnet_TMP/data/tmp/" + nameFile + "_" + indexPartition
       writeToFile(Block(filteredRecords), pathToPartition, input_data_type)
 
       indexPartition = indexPartition + 1
