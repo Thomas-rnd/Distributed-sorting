@@ -20,12 +20,4 @@ case class KeyRange(startKey: Key, endKey: Key) extends Serializable {
     s"KeyRange($startKeyString, $endKeyString)"
   }
 
-  /**
-   * Returns a string representation of the key range with integers.
-   *
-   * @return The string representation with integers.
-   */
-  def toStringAsIntArray: String = {
-    s"KeyRange[${startKey.toStringAsIntArray} - ${endKey.toStringAsIntArray}]"
-  }
 }

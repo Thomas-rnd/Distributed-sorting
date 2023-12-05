@@ -9,6 +9,9 @@ import java.io.IOException
 @SerialVersionUID(3403353340572833574L)
 case class Key(bytes: Array[Byte]) extends Ordered[Key] with Serializable {
 
+  require(bytes.length == Key.keySize, s"Key must have exactly ${Key.keySize} bytes")
+
+
   def toUnsignedByte(byteValue: Byte): Int = {
     byteValue.toInt & 0xFF
   }
@@ -59,8 +62,8 @@ case class Key(bytes: Array[Byte]) extends Ordered[Key] with Serializable {
    * @return The string representation.
    */
   override def toString: String = {
-    val byteArrayAsString = new String(bytes, "UTF-8")
-    s"Key([$byteArrayAsString])"
+    val intArray = bytes.map(byteValue => byteValue & 0xFF)
+    s"Key[${intArray.mkString(" ")}]"
   }
 
   /**
@@ -91,16 +94,7 @@ case class Key(bytes: Array[Byte]) extends Ordered[Key] with Serializable {
       Key(incrementedBytes)
     }
   }
-
-  /**
-   * Represents the bytes as integers in a string.
-   *
-   * @return The string representation of bytes as integers.
-   */
-  def toStringAsIntArray: String = {
-    val intArray = bytes.map(byteValue => byteValue & 0xFF)
-    s"Key[${intArray.mkString(" ")}]"
-  }
+  
 }
 
 // Companion object for Key
