@@ -1,27 +1,41 @@
 package com.cs434.sortnet.core
 
+import java.io.{ByteArrayInputStream, DataInputStream, ByteArrayOutputStream, DataOutputStream}
+
 import org.scalatest.funsuite.AnyFunSuite
 
-import java.io.{ByteArrayInputStream, DataInputStream}
-
 class RecordTest extends AnyFunSuite {
-    /*
+
   test("Serialization and deserialization should work correctly") {
-    val originalKey = Key(Array[Byte](1.toByte, 2.toByte, 3.toByte))
-    val originalValue = Value(Array[Byte](4.toByte, 5.toByte, 6.toByte))
+    // Create a sample Key and Value with the required size
+    val keyBytes = Array[Byte](1, 2, 3, 4, 5, 6, 7, 8, 9, 10)
+    val valueBytes = Array.fill(Value.valueSize)(0.toByte)
 
-    val originalRecord = Record(originalKey, originalValue)
-    val byteArray = originalRecord.toByteArray
+    val key = Key(keyBytes)
+    val value = Value(valueBytes)
 
-    // Use ByteArrayInputStream and DataInputStream for testing deserialization
+    // Create an original Record
+    val originalRecord = Record(key, value)
+
+    // Test serialization
+    val byteArrayOutputStream = new ByteArrayOutputStream()
+    val dataOutputStream = new DataOutputStream(byteArrayOutputStream)
+
+    dataOutputStream.write(originalRecord.toByteArray)
+    dataOutputStream.close()
+    val byteArray = byteArrayOutputStream.toByteArray
+
+    // Ensure the serialized byte array has the expected size
+    assert(byteArray.length == Key.keySize + Value.valueSize)
+
+    // Test deserialization
     val byteArrayInputStream = new ByteArrayInputStream(byteArray)
     val dataInputStream = new DataInputStream(byteArrayInputStream)
 
     val deserializedRecord = Record.fromByteArray(dataInputStream)
 
-    assert(originalRecord == deserializedRecord)
+    // Assertions
+    assert(originalRecord.key.compare(deserializedRecord.key)==0)
+    assert(originalRecord.value.compare(deserializedRecord.value)==0)
   }
-
-  // Add more test cases as needed for other methods in the Record class
-*/
 }

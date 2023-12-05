@@ -10,6 +10,8 @@ import java.io.{DataInputStream, IOException, Serializable}
 @SerialVersionUID(7461933779652783196L)
 case class Value(bytes: Array[Byte]) extends Serializable {
 
+  require(bytes.length == Value.valueSize, s"Value must have exactly ${Value.valueSize} bytes")
+  
   def toUnsignedByte(byteValue: Byte): Int = {
     byteValue.toInt & 0xFF
   }
