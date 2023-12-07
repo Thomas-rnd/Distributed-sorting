@@ -16,21 +16,79 @@ Sortnet is a powerful Scala application designed for distributed and parallel so
 Use the interactive build tool for Scala [sbt](https://www.scala-sbt.org/) to compile an run Sortnet.
 
 ```bash
+cd sortnet/
+
 sbt compile
 ```
 
 ## Usage
 
+### Master
+
+To start the Master, navigate to the sortnet/ directory and use the following command:
 ```bash
-
-# start a Master
-bash bin/master NUM_WORKERS
-
-# start Workers
-bash bin/worker Master_IP:Master_PORT -I Input_DIR1 Input_DIR2 Input_DIR3 ... -O Output_DIR
-
-
+bash bin/master <num_workers>
 ```
+- `<num_workers>`: The number of worker machines to coordinate the sorting process.
+
+### Worker
+
+To start a Worker, navigate to the sortnet/ directory and command use the following command:
+```bash
+bash bin/worker <master_IP:master_PORT> -I <input_directory> <input_directory> ... -O <output_directory> [-ascii]
+```
+- `<master_IP:master_PORT>`: IP address and port of the Master machine.
+- `-I` or `--input`: Specify one or more input directories.
+- `-O` or `--output`: Specify the output directory.
+- `[-ascii]`: Optional flag to indicate ASCII data type (default is byte).
+
+**Example:**
+```bash
+cd sortnet/
+
+bash bin/worker 192.168.1.2:5000 -I input_data1 input_data2 -O output_data -ascii
+```
+**Notes:**
+
+- Ensure the correct format for `<master_IP:master_PORT>` (e.g., `192.168.1.2:5000`).
+- At least one input folder must be provided.
+- The output directory must be specified.
+- The optional `-ascii` flag indicates the use of ASCII data type.
+
+### Logging
+
+The logging configuration for Sortnet is managed through log4j. The log configuration file (`log4j2.xml`) is provided in the project. This configuration defines two appenders:
+
+1. **Console Appender (`console`):**
+   - Logs messages to the console.
+   - Pattern Layout includes timestamp, log level, thread ID, class name, and the log message.
+   - Log level colors are customized for better visibility.
+
+2. **Rolling File Appender (`file`):**
+   - Logs messages to a rolling file (`./log/sortnet.log`).
+   - Pattern Layout is similar to the console appender.
+   - The log file rolls over based on size (10MB), and up to 1000 log files are retained.
+
+The default log level is set to `info`, meaning it logs informational messages and higher levels. Both console and file appenders are used for the root logger.
+
+Adjust the log levels and file paths in the log configuration file based on your specific requirements.
+
+## Test
+
+To ensure the robustness and correctness of Sortnet, we have implemented a comprehensive test suite using the ScalaTest library. The tests cover the core classes as well as the services provided by the master and worker components, excluding network-related methods. This suite aims to verify the functionality of Sortnet's key features, guaranteeing that the sorting algorithm works correctly, and the distributed and parallel processing aspects perform as expected.
+
+To run the tests, navigate to the sortnet/ directory and execute the following command:
+
+```bash
+cd sortnet/
+
+# Run test
+sbt test
+```
+
+This command initiates the test suite, providing detailed output about the success or failure of each individual test. Successful execution of the tests is crucial for ensuring the reliability of Sortnet in various scenarios.
+
+The test suite not only validates the individual components but also checks their interactions to guarantee the seamless coordination of the distributed sorting process. It serves as a fundamental part of our development process, allowing us to catch and address potential issues early on and maintain the overall integrity of Sortnet's functionality.
 
 ## Documentation
 
@@ -48,11 +106,41 @@ View the [Sequence Diagram](https://github.com/AlexDevauchelle/434project/blob/m
 
 ### 1. `data_scripts`
 
-This folder contains shell scripts (`*.sh`) for managing project data:
+The data-scripts folder comprises essential shell scripts (*.sh) for managing project data:
 
-- **Data Creation and Verification:** Utilizes [gensort](http://www.ordinal.com/gensort.html) for creating and verifying data. Data is generated in folders like `~/data/input/folder1`, `folder2`, `folder3`, ..., and verification is performed using files in `~/data/output`.
+#### genData.sh
+This script is responsible for generating data on remote machines, supporting both ASCII and byte data types. It accepts several parameters:
 
-- **Data Deletion:** Includes a delete script that erases all files in `~/data/*`. Users can customize paths using the `-P <your_personal_path>` option.
+```bash
+./genData.sh <num_workers> <data_type> <gensort_path> <input_folder_path> <ip_list_txt> [-mf]
+```
+- <num_workers>: Number of remote machines for data generation.
+- <data_type>: Data type, either 'ascii' or 'byte'.
+- <gensort_path>: Path to the gensort script on remote machines (e.g., ~/gensort).
+- <input_folder_path>: Path to the input data folder on remote machines.
+- <ip_list_txt>: List of IP addresses of remote machines.
+[-mf]: Optional flag to generate data in multiple folders.
+The script checks the existence and emptiness of the input directory on each remote machine before generating data. It calculates the maximum and generated data sizes, creating data files in the specified folder structure.
+
+#### delData.sh
+This script facilitates the deletion of data on remote machines, ensuring a clean slate for subsequent data generation. It takes three parameters: the number of workers (<num_workers>), the path to the data folder (<data_folder_path>), and the IP list text file (<ip_list_txt>). Execute the script using:
+
+```bash
+./delData.sh <num_workers> <data_folder_path> <ip_list_txt>
+```
+The script reads IP addresses from the provided text file, checks the range of the specified number of workers, and then proceeds to delete data on each remote machine.
+
+#### valData.sh
+This script validates and concatenates summary files generated by Sortnet. Execute the script using:
+
+```bash
+./valData.sh <num_workers> <path_to_data> <valsort_path> <ip_list_txt>
+```
+- <num_workers>: Number of remote machines.
+- <path_to_data>: Path to the data directory on remote machines.
+- <valsort_path>: Path to the valsort script on remote machines.
+- <ip_list_txt>: List of IP addresses of remote machines.
+The script checks the existence of the output directory on each remote machine, validates and concatenates summary files, and produces a final summary file (all_final.sum) for further validation. The output folder is set to /tmp/sortnet_OUTPUT. Ensure that this folder exists and is empty before running the script. The validation process checks the integrity of the data and completes with a success message.
 
 ### 2. `docs`
 
