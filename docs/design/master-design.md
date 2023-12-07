@@ -7,11 +7,63 @@ This document provides detailed documentation for the `Master` and `MasterServic
 - **Package:** `com.cs434.sortnet.master`
 - **Files:** `MasterServices.scala`/`Master.scala`
 
-## handleRegisterRequest
+## `handleRegisterRequest(clientSocket: Socket, registerRequest: RegisterRequest, threadPool: ExecutorService, workerMetadataMap: Map[String, WorkerMetadata], numWorkers: Int): Unit`
 
-## sendRequests
+The `handleRegisterRequest` function is responsible for processing registration requests from client sockets in a distributed system. It checks the current number of registered workers against a specified limit (numWorkers). If there is room for more workers, it registers the new worker and sends a positive acknowledgment (RegisterReply(true)); otherwise, it denies the registration and sends a negative acknowledgment (RegisterReply(false)).
 
-## sendRequestThread
+### Parameters:
+
+- `clientSocket`: Socket: The socket representing the client's connection.
+- `registerRequest`: RegisterRequest: An object containing registration request details.
+- `threadPool`: ExecutorService: An executor service for managing concurrent tasks.
+- `workerMetadataMap`: Map[String, WorkerMetadata]: A map storing metadata information for registered workers.
+- `numWorkers`: Int: The maximum allowed number of registered workers.
+
+### Return:
+
+Noting
+
+## `sendRequests(workerMetadataMap: Map[String, WorkerMetadata], messageType: MessageType.Value,partitionPlan: Option[PartitionPlan] = None, sampleKeys: Option[Map[String, List[Key]]] = None, success: Option[Boolean] = None, reason: Option[String] = None): Unit`
+
+The `sendRequests` function is responsible for concurrently sending various types of requests to multiple workers in a distributed system. It leverages multithreading to send different request types, such as sampling keys, saving partition plans, sorting, shuffling, merging, and termination, to worker nodes based on a specified message type.
+
+### Parameters:
+
+- `workerMetadataMap`: Map[String, WorkerMetadata]: A map containing metadata information for multiple workers.
+- `messageType`: MessageType.Value: The type of message/request to be sent to all workers.
+- `partitionPlan`: Option[PartitionPlan]: (Optional) The partition plan to be sent in case of a SavePartitionPlan request.
+- `sampleKeys`: Option[Map[String, List[Key]]]: (Optional) The sampled keys to be sent in case of a SampleKey request.
+- `success`: Option[Boolean]: (Optional) The success status for the Terminate request.
+- `reason`: Option[String]: (Optional) The reason for termination in case of a Terminate request.
+
+### Return:
+
+Nothing
+
+### Description:
+
+The function concurrently sends the specified type of request to all workers in the provided workerMetadataMap. It utilizes multithreading to improve efficiency and handles each request type
+
+## `sendRequestThread(workerMetadata: WorkerMetadata, messageType: MessageType.Value, partitionPlan: Option[PartitionPlan] = None, sampleKeys: Option[Map[String, List[Key]]] = None, success: Option[Boolean] = None, reason: Option[String] = None): Unit`
+
+The `sendRequestThread` function is responsible for sending various types of requests to a worker in a distributed system. It facilitates communication between the master node and worker nodes, supporting operations such as sampling keys, saving partition plans, sorting, shuffling, merging, and termination.
+
+### Parameters:
+
+- `workerMetadata`: WorkerMetadata: Metadata information for the target worker.
+- `messageType`: MessageType.Value: The type of message/request to be sent.
+- `partitionPlan`: Option[PartitionPlan]: (Optional) The partition plan to be sent in case of a SavePartitionPlan request.
+- `sampleKeys`: Option[Map[String, List[Key]]]: (Optional) The sampled keys to be sent in case of a SampleKey request.
+- `success`: Option[Boolean]: (Optional) The success status for the Terminate request.
+- `reason`: Option[String]: (Optional) The reason for termination in case of a Terminate request.
+
+### Returns:
+
+Nothing
+
+### Description:
+
+The function establishes a connection with the specified worker through a socket and sends different types of requests based on the provided messageType. It handles various request types
 
 ## `findPivotKeys(sortedSampledKeys: List[Key], numberOfWorkers: Int): List[Key]`
 
