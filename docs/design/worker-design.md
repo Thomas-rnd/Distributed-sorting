@@ -2,10 +2,10 @@
 
 This document provides comprehensive documentation for the `Worker` and `WorkerServices` classes in the Scala project located at `com.cs434.sortnet.worker`. These classes are responsible for handling various tasks related to worker nodes in a distributed sorting network.
 
-## Object Overview
+## Classes Overview
 
 - **Package:** `com.cs434.sortnet.worker`
-- **File:** `WorkerServices.scala`
+- **Files:** `WorkerServices.scala`/`Worker.scala`
 
 ## `sendSamples(folderPath: String, input_data_type: String): List[Key]`
 

@@ -2,10 +2,10 @@
 
 This document provides detailed documentation for the `Master` and `MasterServices` classes in the Scala project located at `com.cs434.sortnet.master`. The `Master` and `MasterServices` classes are responsible for handling registration requests from worker nodes and coordinating the distribution of sorting tasks among them.
 
-## Class Overview
+## Classes Overview
 
 - **Package:** `com.cs434.sortnet.master`
-- **File:** `MasterServices.scala`
+- **Files:** `MasterServices.scala`/`Master.scala`
 
 ## handleRegisterRequest
 
