@@ -9,6 +9,8 @@ import com.cs434.sortnet.network._
 import com.cs434.sortnet.core._
 
 import org.apache.logging.log4j.scala.Logging
+import org.apache.logging.log4j.Level
+import org.apache.logging.log4j.LogManager
 
 object Master extends Logging{
   private val port: Int = 9999
@@ -27,7 +29,12 @@ object Master extends Logging{
 
     numWorkers = args(0).toInt
     val myIP = InetAddress.getLocalHost.getHostAddress
-    logger.info(s"$myIP:$port")
+    // Get the underlying Log4j Logger
+    val log4jLogger = LogManager.getLogger(getClass.getName)
+
+    // Use the Log4j Logger with your custom log level
+    log4jLogger.log(Level.forName("SPEC", Level.INFO.intLevel), s"$myIP:$port")
+  
 
     try {
 //======================================================      
@@ -51,6 +58,17 @@ object Master extends Logging{
       serverSocket.close()
 
       logger.info(s"All $numWorkers workers register")
+      
+      val orderedWorkers = workerMetadataMap.values.toList.sortBy(_.ip)
+
+      // Update workerMetadataMap with ordered workers
+      workerMetadataMap.clear()
+      orderedWorkers.foreach(workerMetadata => workerMetadataMap.put(workerMetadata.ip, workerMetadata))
+
+      log4jLogger.log(Level.forName("SPEC", Level.INFO.intLevel), "Ordered list of workers:")
+      workerMetadataMap.values.foreach { workerMetadata =>
+        log4jLogger.log(Level.forName("SPEC", Level.INFO.intLevel), s"Worker: IP - ${workerMetadata.ip}")
+      }
       logger.info("Server socket close")
       logger.info("Stage end : Register")
 
