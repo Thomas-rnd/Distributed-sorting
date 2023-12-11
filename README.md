@@ -33,7 +33,7 @@ bash bin/master <num_workers>
 
 ### Worker
 
-To start a Worker, navigate to the sortnet/ directory and command use the following command:
+To start a Worker, navigate to the sortnet/ directory and use the following command:
 ```bash
 bash bin/worker <master_IP:master_PORT> -I <input_directory> <input_directory> ... -O <output_directory> [-ascii]
 ```
