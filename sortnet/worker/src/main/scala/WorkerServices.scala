@@ -295,6 +295,16 @@ object  WorkerServices extends Logging{
     logger.info("filesTomerge LIST : ")
     filesToMerge.foreach(file => logger.info(s"${file.getAbsolutePath}"))
 
+    var totalLineCount = 0
+
+    logger.info("filesToMerge LIST : ")
+    filesToMerge.foreach { file =>
+      totalLineCount += Source.fromFile(file.getAbsolutePath).getLines().size
+    }
+
+    // Print the total line count
+    logger.info(s"Total number of lines for all files: $totalLineCount")
+
     // While filesToMerge is not empty
     while (filesToMerge.nonEmpty) {
       logger.info(s"Iteration $id")
@@ -317,7 +327,7 @@ object  WorkerServices extends Logging{
 
         // Write the max block to a new file only if it contains records
         if (blockMaxNew.records.nonEmpty) {
-          val maxFilePath = folderPath + s"/maxBlock_$i"
+          val maxFilePath = folderPath + s"/maxBlock_${id}_$i"
           Block.writeToFile(blockMaxNew, maxFilePath, input_data_type)
           logger.info(s"BlockMax write at : $maxFilePath")
         }
