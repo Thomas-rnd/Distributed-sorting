@@ -7,6 +7,8 @@ import java.nio.file.{Files, Paths}
 import scala.collection.mutable.{Map, HashMap, ListBuffer}
 import java.lang.Thread.UncaughtExceptionHandler
 
+import scala.io.Source
+
 import com.cs434.sortnet.network._
 import com.cs434.sortnet.core._
 
