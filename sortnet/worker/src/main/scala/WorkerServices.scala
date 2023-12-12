@@ -290,26 +290,36 @@ object  WorkerServices extends Logging{
     assert(folder.exists() && folder.isDirectory, s"$folderPath is not a valid directory")
 
     var filesToMerge = folder.listFiles().filter(_.isFile)
+    
+    logger.info("filesTomerge LIST : ")
+    filesToMerge.foreach(file => logger.info(s"file.getAbsolutePath"))
 
     // While filesToMerge is not empty
     while (filesToMerge.nonEmpty) {
+      logger.info(s"Iteration $id")
       // fileA = first file of the list filesToMerge
       val fileA = filesToMerge.head
-      var blockMin = Block.readFromFile(fileA.getAbsolutePath, input_data_type) 
+      var blockMin = Block.readFromFile(fileA.getAbsolutePath, input_data_type)
+      logger.info(s"Block Min is file : ${fileA.getAbsolutePath} ot type $input_data_type and is size ${blockMin.records.length}")
       Files.delete(Paths.get(fileA.getAbsolutePath))
 
       // Iterate through the rest of the files
+      logger.info(s"Let's Iterate over ${filesToMerge.length} files")
       for (i <- 1 until filesToMerge.length) {
+        logger.info(s"subIt $i : blockMin have ${blockMin.records.length} recs")
         val blockB = Block.readFromFile(filesToMerge(i).getAbsolutePath, input_data_type)
+        logger.info(s"Block Min is file : ${filesToMerge(i).getAbsolutePath} ot type $input_data_type and is size ${blockB.records.length}")
         Files.delete(Paths.get(filesToMerge(i).getAbsolutePath))
 
         // Merge the blocks and get the min and max blocks
         val (blockMinNew, blockMaxNew) = Block.minMax(blockMin, blockB)
+        logger.info(s"new min max created : ${blockMinNew.records.length} recs and ${blockMaxNew.records.length} recs")
 
         // Write the max block to a new file only if it contains records
         if (blockMaxNew.records.nonEmpty) {
           val maxFilePath = folderPath + s"/maxBlock_$i"
           Block.writeToFile(blockMaxNew, maxFilePath, input_data_type)
+          logger.info(s"BlockMax write at : $maxFilePath")
         }
 
         // Update the blockMin for the next iteration
@@ -319,11 +329,14 @@ object  WorkerServices extends Logging{
       // Write the final min block to the output file
       val finalMinFilePath = outputPath + s"/partition.$id"
       Block.writeToFile(blockMin, finalMinFilePath, input_data_type)
+      logger.info(s"BlockMin write at : $finalMinFilePath")
       id = id + 1
 
 
       // Update the list of files to merge
       filesToMerge = folder.listFiles().filter(_.isFile)
+      logger.info("Updated filesTomerge LIST : ")
+      filesToMerge.foreach(file => logger.info(s"file.getAbsolutePath"))
     }
   }  
 }
