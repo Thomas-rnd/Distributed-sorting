@@ -301,20 +301,19 @@ object  WorkerServices extends Logging{
       // fileA = first file of the list filesToMerge
       val fileA = filesToMerge.head
       var blockMin = Block.readFromFile(fileA.getAbsolutePath, input_data_type)
-      logger.info(s"Block Min is file : ${fileA.getAbsolutePath} ot type $input_data_type and is size ${blockMin.records.length}")
+      logger.info(s"Block Min: ${fileA.getAbsolutePath}")
       Files.delete(Paths.get(fileA.getAbsolutePath))
 
       // Iterate through the rest of the files
       logger.info(s"Let's Iterate over ${filesToMerge.length} files")
       for (i <- 1 until filesToMerge.length) {
-        logger.info(s"subIt $i : blockMin have ${blockMin.records.length} recs")
+        logger.info(s"subIt $i")
         val blockB = Block.readFromFile(filesToMerge(i).getAbsolutePath, input_data_type)
-        logger.info(s"Block Min is file : ${filesToMerge(i).getAbsolutePath} ot type $input_data_type and is size ${blockB.records.length}")
+        logger.info(s"Block B: ${filesToMerge(i).getAbsolutePath}")
         Files.delete(Paths.get(filesToMerge(i).getAbsolutePath))
 
         // Merge the blocks and get the min and max blocks
         val (blockMinNew, blockMaxNew) = Block.minMax(blockMin, blockB)
-        logger.info(s"new min max created : ${blockMinNew.records.length} recs and ${blockMaxNew.records.length} recs")
 
         // Write the max block to a new file only if it contains records
         if (blockMaxNew.records.nonEmpty) {
@@ -330,7 +329,7 @@ object  WorkerServices extends Logging{
       // Write the final min block to the output file
       val finalMinFilePath = outputPath + s"/partition.$id"
       Block.writeToFile(blockMin, finalMinFilePath, input_data_type)
-      logger.info(s"BlockMin write at : $finalMinFilePath")
+      logger.info(s"BlockMin write at : $finalMinFilePath of size ${blockMin.records.length}")
       id = id + 1
       nbRecWrite = nbRecWrite + blockMin.records.length
 
