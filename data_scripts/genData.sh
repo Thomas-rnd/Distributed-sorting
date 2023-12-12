@@ -89,10 +89,10 @@ for ((i = 0; i < num_workers; i++)); do
 done
 
 # Calculate the maximum size in 100-byte blocks for 100 MB
-max_size=$((100 * 1024 * 1024 / 100))
+max_size=$((160 * 1024 * 1024 / 100))
 
 # Calculate the size in 100-byte blocks for 10 MB
-gen_size=$((10 * 1024 * 1024 / 100))
+gen_size=$((32 * 1024 * 1024 / 100))
 
 max_nb_file=$((max_size/gen_size))
 gen_step=0
@@ -121,5 +121,7 @@ for ((i = 0; i < num_workers; i++)); do
     done
     
 done
+
+echo "Gen step : $gen_step"
 
 wait
