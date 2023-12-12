@@ -55,7 +55,7 @@ bash bin/worker 192.168.1.2:5000 -I input_data1 input_data2 -O output_data -asci
 - The output directory must be specified.
 - The optional `-ascii` flag indicates the use of ASCII data type.
 
-### Logging
+## Logging
 
 The logging configuration for Sortnet is managed through log4j. The log configuration file (`log4j2.xml`) is provided in the project. This configuration defines two appenders:
 
