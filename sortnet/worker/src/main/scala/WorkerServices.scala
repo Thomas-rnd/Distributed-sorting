@@ -285,7 +285,6 @@ object  WorkerServices extends Logging{
     */
   def mergeFiles(folderPath: String,outputPath: String, input_data_type: String): Unit = {
     var id = 1
-    var nbRecWrite = 0
 
     val folder = new File(folderPath)
 
@@ -294,27 +293,16 @@ object  WorkerServices extends Logging{
 
     var filesToMerge = folder.listFiles().filter(_.isFile)
     
-    logger.debug("filesTomerge LIST : ")
-    filesToMerge.foreach(file => logger.debug(s"${file.getAbsolutePath}"))
-
-    // Print the total line count
-    logger.debug(s"Total number of lines for all files: $totalLineCount")
-
     // While filesToMerge is not empty
     while (filesToMerge.nonEmpty) {
-      logger.debug(s"Iteration $id")
       // fileA = first file of the list filesToMerge
       val fileA = filesToMerge.head
       var blockMin = Block.readFromFile(fileA.getAbsolutePath, input_data_type)
-      logger.debug(s"Block Min: ${fileA.getAbsolutePath}")
       Files.delete(Paths.get(fileA.getAbsolutePath))
 
       // Iterate through the rest of the files
-      logger.debug(s"Let's Iterate over ${filesToMerge.length} files")
       for (i <- 1 until filesToMerge.length) {
-        logger.debug(s"subIt $i")
         val blockB = Block.readFromFile(filesToMerge(i).getAbsolutePath, input_data_type)
-        logger.debug(s"Block B: ${filesToMerge(i).getAbsolutePath}")
         Files.delete(Paths.get(filesToMerge(i).getAbsolutePath))
 
         // Merge the blocks and get the min and max blocks
@@ -324,7 +312,6 @@ object  WorkerServices extends Logging{
         if (blockMaxNew.records.nonEmpty) {
           val maxFilePath = folderPath + s"/maxBlock_${id}_$i"
           Block.writeToFile(blockMaxNew, maxFilePath, input_data_type)
-          logger.debug(s"BlockMax write at : $maxFilePath")
         }
 
         // Update the blockMin for the next iteration
@@ -334,18 +321,11 @@ object  WorkerServices extends Logging{
       // Write the final min block to the output file
       val finalMinFilePath = outputPath + s"/partition.$id"
       Block.writeToFile(blockMin, finalMinFilePath, input_data_type)
-      logger.debug(s"BlockMin write at : $finalMinFilePath of size ${blockMin.records.length}")
       id = id + 1
-      nbRecWrite = nbRecWrite + blockMin.records.length
 
 
       // Update the list of files to merge
       filesToMerge = folder.listFiles().filter(_.isFile)
-      logger.debug("Updated filesTomerge LIST : ")
-      filesToMerge.foreach(file => logger.debug(s"${file.getAbsolutePath}"))
     }
-    logger.debug(s"Total written records : $nbRecWrite")
-
-
   }  
 }
