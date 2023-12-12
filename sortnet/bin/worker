@@ -99,4 +99,4 @@ export SBT_OPTS="-Dlog4j.configurationFile=${filedir}/../conf/log4j2.xml"
 
 sbt "worker/runMain com.cs434.sortnet.worker.Worker ${ipport} ${outputdir} ${input_data_type} ${inputdirs[*]}"
 
-#rm -rf /tmp/sortnet_TMP
+rm -rf /tmp/sortnet_TMP
