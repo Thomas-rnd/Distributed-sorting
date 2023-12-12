@@ -283,6 +283,7 @@ object  WorkerServices extends Logging{
     */
   def mergeFiles(folderPath: String,outputPath: String, input_data_type: String): Unit = {
     var id = 1
+    var nbRecWrite = 0
 
     val folder = new File(folderPath)
 
@@ -292,7 +293,7 @@ object  WorkerServices extends Logging{
     var filesToMerge = folder.listFiles().filter(_.isFile)
     
     logger.info("filesTomerge LIST : ")
-    filesToMerge.foreach(file => logger.info(s"file.getAbsolutePath"))
+    filesToMerge.foreach(file => logger.info(s"${file.getAbsolutePath}"))
 
     // While filesToMerge is not empty
     while (filesToMerge.nonEmpty) {
@@ -331,12 +332,16 @@ object  WorkerServices extends Logging{
       Block.writeToFile(blockMin, finalMinFilePath, input_data_type)
       logger.info(s"BlockMin write at : $finalMinFilePath")
       id = id + 1
+      nbRecWrite = nbRecWrite + blockMin.records.length
 
 
       // Update the list of files to merge
       filesToMerge = folder.listFiles().filter(_.isFile)
       logger.info("Updated filesTomerge LIST : ")
-      filesToMerge.foreach(file => logger.info(s"file.getAbsolutePath"))
+      filesToMerge.foreach(file => logger.info(s"${file.getAbsolutePath}"))
     }
+    logger.info(s"Total written records : $nbRecWrite")
+
+
   }  
 }
