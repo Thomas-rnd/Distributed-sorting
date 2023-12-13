@@ -280,13 +280,16 @@ object Block extends Serializable {
 
     // Split the sorted records into two blocks
     val blockSize = sortedRecords.length
-    val blockMinRecords = sortedRecords.take(104857) // Adjust the number of records as needed
-    val blockMaxRecords = sortedRecords.drop(104857)
+    val nb_record_per_file = 335544//104857 for 10 MB - 335544 for 32MB
+    val blockMinRecords = sortedRecords.take(nb_record_per_file) // Adjust the number of records as needed
+    val blockMaxRecords = sortedRecords.drop(nb_record_per_file)
 
     // Create Block instances for blockMin and blockMax
     val blockMin = Block(blockMinRecords)
     val blockMax = Block(blockMaxRecords)
 
+    // Assert that the sum of records in input blocks equals the sum in output blocks
+    assert(blockA.records.length + blockB.records.length == blockMin.records.length + blockMax.records.length, "Sum of records in input blocks is not equal to sum in output blocks")
 
     // Return the tuple of blockMin and blockMax
     (blockMin, blockMax)

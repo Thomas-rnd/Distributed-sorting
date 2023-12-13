@@ -7,6 +7,8 @@ import java.nio.file.{Files, Paths}
 import scala.collection.mutable.{Map, HashMap, ListBuffer}
 import java.lang.Thread.UncaughtExceptionHandler
 
+import scala.io.Source
+
 import com.cs434.sortnet.network._
 import com.cs434.sortnet.core._
 
@@ -290,12 +292,12 @@ object  WorkerServices extends Logging{
     assert(folder.exists() && folder.isDirectory, s"$folderPath is not a valid directory")
 
     var filesToMerge = folder.listFiles().filter(_.isFile)
-
+    
     // While filesToMerge is not empty
     while (filesToMerge.nonEmpty) {
       // fileA = first file of the list filesToMerge
       val fileA = filesToMerge.head
-      var blockMin = Block.readFromFile(fileA.getAbsolutePath, input_data_type) 
+      var blockMin = Block.readFromFile(fileA.getAbsolutePath, input_data_type)
       Files.delete(Paths.get(fileA.getAbsolutePath))
 
       // Iterate through the rest of the files
@@ -308,7 +310,7 @@ object  WorkerServices extends Logging{
 
         // Write the max block to a new file only if it contains records
         if (blockMaxNew.records.nonEmpty) {
-          val maxFilePath = folderPath + s"/maxBlock_$i"
+          val maxFilePath = folderPath + s"/maxBlock_${id}_$i"
           Block.writeToFile(blockMaxNew, maxFilePath, input_data_type)
         }
 
