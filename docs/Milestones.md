@@ -34,4 +34,6 @@
 - [x] Communication merging task
 - [x] Merging method
 - [x] Validating output result (valsort)
-- [ ] Testing overall solution
+- [x] Errors handling
+- [x] Unit tests
+- [x] Testing overall solution
